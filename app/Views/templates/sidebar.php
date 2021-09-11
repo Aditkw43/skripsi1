@@ -60,7 +60,7 @@
                     <div id="navAuthentication" class="collapse " data-bs-parent="#sideNavbar">
                         <ul class="nav flex-column">
                             <li class="nav-item">
-                                <a class="nav-link " href="/pages/sign-in.html"> List Pendampingan</a>
+                                <a class="nav-link " href="<?= base_url('/viewDamping/' . user()->username); ?>"> List Pendampingan</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link  " href="/pages/sign-up.html"> Presensi</a>

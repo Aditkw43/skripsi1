@@ -36,10 +36,14 @@ $routes->get('/admin', 'Admin::index', ['filter' => 'role:admin']);
 $routes->get('/admin/index', 'Admin::index', ['filter' => 'role:admin']);
 $routes->get('/admin/(:num)', 'Admin::detail/$1', ['filter' => 'role:admin']);
 
+// Pendampingan
 $routes->get('/generate', 'c_damping_ujian::generate', ['filter' => 'role:admin']);
 $routes->get('/saveGenerate', 'c_damping_ujian::saveGenerate', ['filter' => 'role:admin']);
 $routes->get('/c_user/updateProfile', 'c_user::updateProfile');
+$routes->get('/viewDamping/(:num)', 'c_damping_ujian::viewDamping/$1');
+$routes->get('/konfirmasiDamping/(:num)', 'c_damping_ujian::konfirmasiDamping/$1');
 
+// Profile
 $routes->get('/viewProfile/(:num)', 'c_user::viewProfile/$1');
 $routes->get('/c_user/updateProfile', 'c_user::updateProfile');
 

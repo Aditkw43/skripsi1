@@ -10,22 +10,49 @@
                         <h2><?= $title; ?></h2>
                         <div class="my-2" style="display: flex; align-items:right">
                             <!-- Button trigger modal -->
-                            <button type="button" class="btn btn-warning btn-sm mt-3 mx-1 editJadwal" data-bs-toggle="modal" data-bs-target="#cekDamping" ?>
+                            <button type="button" class="btn btn-warning btn-sm mt-3 mx-1 editJadwal" data-bs-toggle="modal" data-bs-target="#cekTidakDamping" ?>
                                 Cek Tidak Didampingi
                             </button>
 
                             <!-- Button trigger modal -->
                             <a class="btn btn-danger btn-sm mt-3 mx-1" href="<?= base_url('c_damping_ujian'); ?>">Hapus Generate</a>
-
-                            <!-- Button trigger modal -->
-                            <a class="btn btn-success btn-sm mt-3 mx-1" href="<?= base_url('saveGenerate'); ?>">Simpan Generate</a>
+                            <form action="<?= base_url('c_damping_ujian/saveGenerate'); ?>" method="post">
+                                <?php foreach ($value_generate as $vgs) : ?>
+                                    <input type="hidden" name="v_damping[id_jadwal_ujian_madif][]" value="<?= $vgs['id_jadwal_ujian_madif']; ?>">
+                                    <input type="hidden" name="v_damping[id_profile_madif][]" value="<?= $vgs['id_profile_madif']; ?>">
+                                    <input type="hidden" name="v_damping[id_profile_pendamping][]" value="<?= $vgs['id_profile_pendamping']; ?>">
+                                    <input type="hidden" name="v_damping[ref_pendampingan][]" value="<?= $vgs['ref_pendampingan']; ?>">
+                                    <input type="hidden" name="v_damping[prioritas][]" value="<?= $vgs['prioritas']; ?>">
+                                    <input type="hidden" name="v_damping[jenis_ujian][]" value="<?= $vgs['jenis_ujian']; ?>">
+                                <?php endforeach; ?>
+                                <!-- Button trigger modal -->
+                                <button class="btn btn-success btn-sm mt-3 mx-1">Simpan Generate</a>
+                            </form>
                         </div>
                     </div>
 
                     <!-- Basic table -->
                     <div class="table-responsive">
-                        <table class="table table-hover table-dark" style="border-radius: 5px 5px 0px 0px; overflow: hidden; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);">
+                        <table class="table table-light" style="border-radius: 5px 5px 0px 0px; overflow: hidden; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);">
                             <thead class="text-center">
+                                <tr>
+                                    <th scope="col">Total Madif Didampingi</th>
+                                    <th scope="col">Total Madif Tidak Didampingi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-center table-light">
+                                <tr>
+                                    <td><?= count($value_generate)-count($v_tidak_didampingi); ?></td>
+                                    <td><?= count($v_tidak_didampingi); ?></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Basic table -->
+                    <div class="table-responsive">
+                        <table class="table table-hover table-dark" style="border-radius: 5px 5px 0px 0px; overflow: hidden; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);">
+                            <thead>
                                 <tr>
                                     <th scope="col">No</th>
                                     <th scope="col">NIM</th>
@@ -36,26 +63,25 @@
                                     <th scope="col">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody class="text-center table-light">
+                            <tbody class="table-light">
 
                                 <?php $i = 1 ?>
-                                <?php foreach ($v_damping as $v) : ?>
+                                <?php foreach ($madif as $m) : ?>
                                     <tr class="align-middle">
                                         <th scope="row"><?= $i; ?></th>
-                                        <td><?= $v['nim']; ?></td>
-                                        <td><?= $v['nama']; ?></td>
-                                        <td><?= $v['fakultas']; ?></td>
-                                        <td><?= $v['jumlah_didampingi']; ?></td>
-                                        <td><?= $v['jumlah_tidak_didampingi']; ?></td>
+                                        <td><?= $m['nim']; ?></td>
+                                        <td><?= $m['nama']; ?></td>
+                                        <td><?= $m['fakultas']; ?></td>
+                                        <td><?= $m['jumlah_didampingi']; ?></td>
+                                        <td><?= $m['jumlah_tidak_didampingi']; ?></td>
                                         <td class="text-center">
-                                            <button type="button" class="btn btn-info btn-sm editJadwal" data-bs-toggle="modal" data-bs-target="#detailDamping<?= $v['id_profile_madif']; ?>" ?>
+                                            <button type="button" class="btn btn-info btn-sm editJadwal" data-bs-toggle="modal" data-bs-target="#detailDamping<?= $m['id_profile_madif']; ?>" ?>
                                                 Detail
                                             </button>
                                         </td>
                                     </tr>
                                     <?php $i++; ?>
                                 <?php endforeach; ?>
-
                             </tbody>
                         </table>
                     </div>
@@ -65,65 +91,121 @@
     </div>
 </div>
 
-<?php foreach ($v_damping as $vd) : ?>
+<?php foreach ($madif as $md) : ?>
     <!-- Modal Detail Damping-->
-    <div class="modal fade" id="detailDamping<?= $vd['id_profile_madif']; ?>" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+    <div class="modal fade" id="detailDamping<?= $md['id_profile_madif']; ?>" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered  modal-lg">
             <div class="modal-content">
                 <div class="modal-header" style="background-color: darkblue">
-                    <h5 class="modal-title text-white" id="exampleModalLabel">Detail Pendampingan <?= $vd['nama']; ?></h5>
+                    <h5 class="modal-title text-white" id="exampleModalLabel">Detail Pendampingan <?= $md['nama']; ?></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="/c_jadwal_ujian/delJadwal" method="post">
-                    <div class="modal-body">
-                        <div class="container-fluid">
-                            <p>Apakah anda yakin ingin menghapus jadwal ujian ini?</p>
-                            <p>Jika iya, silahkan klik tombol <strong>"Hapus"</strong></p>
-                            <?= csrf_field(); ?>
-                            <!-- HTTP Spoofing -->
-                            <input type="hidden" name="_method" value="DELETE">
+                <div class="modal-body">
+                    <p style="color: red;">catatan: tanda '-' menunjukkan tidak ada referensi pendampingan yang sesuai</p>
+                    <form action="/c_jadwal_ujian/delJadwal" method="post">
+                        <!-- Basic table -->
+                        <div class="table-responsive">
+                            <table class="table table-hover table-dark" style="border-radius: 5px 5px 0px 0px; overflow: hidden; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">No.</th>
+                                        <th scope="col">Mata Kuliah</th>
+                                        <th scope="col">Pendamping</th>
+                                        <th scope="col">Ref. Pendampingan</th>
+                                        <th scope="col">Prioritas</th>
+                                    </tr>
+                                </thead>
+                                <?php $i = 1; ?>
+                                <?php foreach ($hasil_generate as $hg) : ?>
+                                    <?php if ($hg['id_profile_madif'] == $md['id_profile_madif'] && $hg['nama_pendamping'] != null) : ?>
+                                        <tbody class="table-light">
+                                            <tr class="align-middle">
+                                                <th scope="row"><?= $i; ?></th>
+                                                <td><?= $hg['mata_kuliah']; ?></td>
+                                                <td><?= $hg['nama_pendamping']; ?></td>
+                                                <td><?= $hg['ref_pendampingan']; ?></td>
+                                                <td><?= $hg['prioritas']; ?></td>
+                                            </tr>
+                                        </tbody>
+                                        <?php $i++; ?>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </table>
                         </div>
-                    </div>
-
-                    <input type="hidden" name="id_jadwal_ujian" value="">
-
-                    <div class="modal-footer">
-                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
+
+    <?php foreach ($hasil_generate as $detail) : ?>
+        <!-- Detail jadwal damping ujian -->
+        <div class="modal fade" id="detailJadwalDamping<?= $detail['nama_madif']; ?>" aria-hidden="true" aria-labelledby="exampleModalToggleLabel2" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalToggleLabel2"><?= $detail['nama_madif']; ?></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        Hide this modal and show the first with the button below.
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" data-bs-target="detailDamping<?= $detail['id_profile_madif']; ?>" data-bs-toggle="modal" data-bs-dismiss="modal">Back to first</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endforeach; ?>
+
 <?php endforeach; ?>
 
+
 <!-- Modal Cek Tidak Didampingi-->
-<div class="modal fade" id="cekDamping" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+<div class="modal fade" id="cekTidakDamping" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
         <div class="modal-content">
             <div class="modal-header" style="background-color: rgba(222, 222, 22, 1);">
                 <h5 class="modal-title text-black" id="exampleModalLabel">Cek Madif Tidak Didampingi</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="/c_jadwal_ujian/delJadwal" method="post">
-                <div class="modal-body">
-                    <div class="container-fluid">
-                        <p>Apakah anda yakin ingin menghapus jadwal ujian ini?</p>
-                        <p>Jika iya, silahkan klik tombol <strong>"Hapus"</strong></p>
-                        <?= csrf_field(); ?>
-                        <!-- HTTP Spoofing -->
-                        <input type="hidden" name="_method" value="DELETE">
+
+            <div class="modal-body">
+                <form action="/c_jadwal_ujian/delJadwal" method="post">
+                    <!-- Basic table -->
+                    <div class="table-responsive">
+                        <p style="color: red;">Jumlah Madif Tidak Didampingi: <?= count($v_tidak_didampingi); ?></p>
+                        <table class="table table-hover table-dark" style="border-radius: 5px 5px 0px 0px; overflow: hidden; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);">
+                            <thead class="text-center">
+                                <tr>
+                                    <th scope="col">No</th>
+                                    <th scope="col">Tanggal Ujian</th>
+                                    <th scope="col">Mahasiswa Difabel</th>
+                                    <th scope="col">Pendamping</th>
+                                    <th scope="col">Jumlah Didampingi</th>
+                                    <th scope="col">Jumlah Tidak Didampingi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-center table-light">
+                                <?php $i = 1 ?>
+                                <?php foreach ($v_tidak_didampingi as $vtd) : ?>
+                                    <tr class="align-middle">
+                                        <th scope="row"><?= $i; ?></th>
+                                        <td><?= date('d, M Y', strtotime($vtd['tanggal_ujian'])); ?></td>
+                                        <td><?= $vtd['nama_madif']; ?></td>
+                                        <td style="color: red;"><?= $vtd['nama_pendamping']; ?></td>
+                                        <td><?= $vtd['mata_kuliah']; ?></td>
+                                        <td><?= date('H:i', strtotime($vtd['waktu_mulai_ujian'])); ?> - <?= date('H:i', strtotime($vtd['waktu_selesai_ujian'])); ?></td>
+                                    </tr>
+                                    <?php $i++; ?>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                     </div>
-                </div>
-
-                <input type="hidden" name="id_jadwal_ujian" value="">
-
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
 </div>
-
 
 <?= $this->endSection(); ?>
