@@ -157,6 +157,7 @@
                 </div>
             </div>
 
+            <!-- Profile Selain Pendamping -->
             <?php if (!in_groups('pendamping')) : ?>
                 <!-- Biodata -->
                 <div class="col-xl-12 col-lg-12 col-md-12 col-12 mb-6">
@@ -202,6 +203,7 @@
                 </div>
             <?php endif; ?>
 
+            <!-- Profile Pendamping -->
             <?php if (in_groups('pendamping')) : ?>
                 <!-- Biodata -->
                 <div class="col-xl-6 col-lg-12 col-md-12 col-12 mb-6">
@@ -268,7 +270,8 @@
                                         <tr>
                                             <th scope="col">Prioritas</th>
                                             <th scope="col">Referensi Pendampingan</th>
-                                            <th scope="col">Detail</th>
+                                            <th scope="col">Status</th>
+                                            <th scope="col">Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -279,16 +282,18 @@
 
                                                 <td class="text-center"><?= $kategori_difabel[$s['ref_pendampingan'] - 1]['jenis'] ?></td>
 
-                                                <td>
-                                                    <!-- Cara kerja:
-                                                        1. Buat button/a.href
-                                                        2. Buat atribut data-toggle, data-target, dan data-* untuk isi valuenya
-                                                        3. Buat Modal diakhir, disamakan dengan data-target dan id modal
-                                                        4. Buat Script javascript untuk memasukkan data valuenya ke modal, dan ditaruh di akhir sebelum tag body -->
+                                                <?php if (!isset($s['approval'])) : ?>
+                                                    <td class="text-center" style="color:orange">Menunggu Verifikasi</td>
+                                                <?php elseif ($s['approval'] == true) : ?>
+                                                    <td class="text-center" style="color:green">Terverifikasi</td>
+                                                <?php else : ?>
+                                                    <td class="text-center" style="color:red">Ditolak</td>
+                                                <?php endif ?>
 
+                                                <td>
                                                     <!-- Button trigger modal Detail Jadwal Ujian -->
-                                                    <button type="button" class="btn btn-warning btn-sm editJadwal" data-bs-toggle="modal" data-bs-target="#editSkill<?= $s['id_profile_pendamping'] . $s['ref_pendampingan']; ?>" ?>
-                                                        <i class="fas fa-pen-square"></i>
+                                                    <button type="button" class="btn btn-<?= ($s['approval'] == '0') ? 'info' : 'warning'; ?> btn-sm editJadwal" data-bs-toggle="modal" data-bs-target="#editSkill<?= $s['id_profile_pendamping'] . $s['ref_pendampingan']; ?>" ?>
+                                                        <i class="fas <?= ($s['approval'] == '0') ? 'fa-exchange-alt' : 'fa-pen-square'; ?> "></i>
                                                     </button>
 
                                                     <!-- Button Trigger Modal Hapus Jadwal Ujian -->
@@ -353,10 +358,17 @@
                         <div class="modal-content">
 
                             <!-- Header -->
-                            <div class="modal-header" style="background-color: gold;">
-                                <h5 class="modal-title" id="exampleModalLabel" style=" color:black">Edit Referensi Pendampingan <?= $kd['jenis'] ?></h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
+                            <?php if ($sp['approval'] == '0') : ?>
+                                <div class="modal-header" style="background-color: cyan;">
+                                    <h5 class="modal-title" id="exampleModalLabel" style=" color:black">Ganti Referensi Pendampingan <?= $kd['jenis'] ?></h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                            <?php else : ?>
+                                <div class="modal-header" style="background-color: gold;">
+                                    <h5 class="modal-title" id="exampleModalLabel" style=" color:black">Edit Referensi Pendampingan <?= $kd['jenis'] ?></h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                            <?php endif; ?>
 
                             <?php
                             $skills_lama = [];
@@ -380,6 +392,9 @@
 
                                     <!-- NIM -->
                                     <input type="hidden" name="id_profile_pendamping" value="<?= $profile['id_profile_mhs']; ?>">
+
+                                    <!-- Approval -->
+                                    <input type="hidden" name="approval" value="<?= $sp['approval']; ?>">
 
                                     <!-- Old Referensi Pendampingan-->
                                     <input type="hidden" name="old_ref_pendampingan" value="<?= $kd['id']; ?>">
@@ -438,6 +453,7 @@
                         </div>
                     </div>
                 </div>
+
             <?php endif; ?>
         <?php endforeach; ?>
     <?php endforeach; ?>
@@ -573,13 +589,18 @@
                     <!-- Jenis Mahasiswa Difabel -->
                     <?php if (in_groups('madif')) : ?>
                         <div class="form-floating mb-2">
-                            <select class="form-select" aria-label="Default select example" name="jenis_madif" id="floatingInput" autofocus required>
+                            <select class="form-select <?= ($jenis_madif['approval'] == null || $jenis_madif['approval'] == '0') ? 'is-invalid' : ''; ?>" aria-label="Default select example" name="jenis_madif" id="floatingInput" autofocus required>
                                 <?php for ($i = 0; $i < count($kategori_difabel); $i++) : ?>
                                     <option value=<?= $kategori_difabel[$i]['id']; ?> <?= ($kategori_difabel[$i]['id'] == $jenis_madif['id_jenis_difabel']) ? 'selected' : ''; ?>><?= $i + 1 . '. ' . $kategori_difabel[$i]['jenis']; ?>
                                     </option>
                                 <?php endfor; ?>
                             </select>
                             <label for="floatingInput">Jenis Difabel</label>
+                            <?php if ($jenis_madif['approval'] == null) : ?>
+                                <div class="invalid-feedback" style="color:blue">*Menunggu Verifikasi dari Admin</div>
+                            <?php elseif ($jenis_madif['approval'] == '0') : ?>
+                                <div class="invalid-feedback">*Jenis Difabel Ditolak Admin</div>
+                            <?php endif; ?>
                         </div>
                     <?php endif; ?>
 

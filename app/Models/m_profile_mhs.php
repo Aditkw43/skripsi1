@@ -42,15 +42,15 @@ class m_profile_mhs extends Model
         $skill_pendamping = $this->builder();
         if ($id_profile_pendamping == 0) {
             $skill_pendamping = $skill_pendamping->select('profile_skills.*')
-                ->join('profile_skills', 'profile_skills.id_profile_pendamping = profile_mhs.id_profile_mhs', 'left')
+                ->join('profile_skills', 'profile_skills.id_profile_pendamping = profile_mhs.id_profile_mhs', 'right')
+                ->orderBy('id_profile_pendamping', 'asc')
                 ->orderBy('prioritas', 'asc')
                 ->get()->getResultArray();
-
             return $skill_pendamping;
         }
 
         $skill_pendamping = $skill_pendamping->select('profile_skills.*')
-            ->join('profile_skills', 'profile_skills.id_profile_pendamping = profile_mhs.id_profile_mhs', 'left')
+            ->join('profile_skills', 'profile_skills.id_profile_pendamping = profile_mhs.id_profile_mhs', 'right')
             ->where('id_profile_pendamping', $id_profile_pendamping)
             ->orderBy('prioritas', 'asc')
             ->get()->getResultArray();
@@ -62,14 +62,14 @@ class m_profile_mhs extends Model
     {
         $jenis_madif = $this->builder();
         if ($id_profile_madif == 0) {
-            $jenis_madif->select('profile_jenis_madif.*')
-                ->join('profile_jenis_madif', 'profile_jenis_madif.id_profile_madif = profile_mhs.id_profile_mhs', 'left')
+            $jenis_madif = $jenis_madif->select('profile_jenis_madif.*')
+                ->join('profile_jenis_madif', 'profile_jenis_madif.id_profile_madif = profile_mhs.id_profile_mhs')
                 ->get()->getResultArray();
             return $jenis_madif;
         }
 
         $jenis_madif = $jenis_madif->select('profile_jenis_madif.*')
-            ->join('profile_jenis_madif', 'profile_jenis_madif.id_profile_madif = profile_mhs.id_profile_mhs', 'left')
+            ->join('profile_jenis_madif', 'profile_jenis_madif.id_profile_madif = profile_mhs.id_profile_mhs')
             ->getWhere(['id_profile_madif' => $id_profile_madif])
             ->getRowArray();
 
@@ -81,7 +81,8 @@ class m_profile_mhs extends Model
         if ($ref_pendampingan == 0) {
             return $this->db->table('kategori_difabel')->get()->getResultArray();
         }
-        return $this->db->table('kategori_difabel')->getwhere(['id' => $ref_pendampingan])->getRow();
+
+        return $this->db->table('kategori_difabel')->getwhere(['id' => $ref_pendampingan])->getRowArray();
     }
 
     public function addSkillPendamping($data)
@@ -177,6 +178,7 @@ class m_profile_mhs extends Model
                             'id_profile_pendamping' => $ganti->id_profile_pendamping,
                             'ref_pendampingan' => $ganti->ref_pendampingan,
                             'prioritas' => $ganti->prioritas + 1,
+                            'approval' => $ganti->approval,
                         ];
 
                         $this->db->table('profile_skills')->where('id_profile_pendamping', $data['id_profile_pendamping'])->where('prioritas', $i)->replace($insert);
@@ -191,6 +193,7 @@ class m_profile_mhs extends Model
                             'id_profile_pendamping' => $ganti->id_profile_pendamping,
                             'ref_pendampingan' => $ganti->ref_pendampingan,
                             'prioritas' => $ganti->prioritas - 1,
+                            'approval' => $ganti->approval,
                         ];
 
                         $this->db->table('profile_skills')->where('id_profile_pendamping', $insert['id_profile_pendamping'])->where('prioritas', $i)->replace($insert);
@@ -210,8 +213,14 @@ class m_profile_mhs extends Model
                     'id_profile_pendamping'  => (int) $data['id_profile_pendamping'],
                     'ref_pendampingan' => (int) $data['ref_pendampingan'],
                     'prioritas' => (int) $data['prioritas'],
+                    'approval' => $data['approval'],
                 ];
                 $this->db->table('profile_skills')->where('id_profile_pendamping', $insert['id_profile_pendamping'])->where('prioritas', $insert['prioritas'])->replace($insert);
+            }
+
+            // Jika skill ditolak, dan mau mengubah ulang skill
+            if (isset($data['skill_ditolak'])) {
+                $this->db->table('profile_skills')->Where('id_profile_pendamping', $data['id_profile_pendamping'])->where('ref_pendampingan', $data['ref_pendampingan'])->update(['approval' => null]);
             }
             // Jika referensi pendamping tidak berubah, namun prioritas skill berubah
         } else {
@@ -224,6 +233,7 @@ class m_profile_mhs extends Model
                         'id_profile_pendamping' => $ganti->id_profile_pendamping,
                         'ref_pendampingan' => $ganti->ref_pendampingan,
                         'prioritas' => $ganti->prioritas + 1,
+                        'approval' => $ganti->approval,
                     ];
 
                     $this->db->table('profile_skills')->where('id_profile_pendamping', $insert['id_profile_pendamping'])->where('prioritas', $i)->replace($insert);
@@ -238,21 +248,26 @@ class m_profile_mhs extends Model
                         'id_profile_pendamping' => $ganti->id_profile_pendamping,
                         'ref_pendampingan' => $ganti->ref_pendampingan,
                         'prioritas' => $ganti->prioritas - 1,
+                        'approval' => $ganti->approval,
                     ];
+
+                    d($insert);
 
                     $this->db->table('profile_skills')->where('id_profile_pendamping', $insert['id_profile_pendamping'])->where('prioritas', $i)->replace($insert);
                 }
             }
-
             // Memasukkan data baru
             $insert = [
                 'id_profile_pendamping'  => (int) $data['id_profile_pendamping'],
                 'ref_pendampingan' => (int) $data['ref_pendampingan'],
                 'prioritas' => (int) $data['prioritas'],
+                'approval' => (isset($data['approval'])) ? $data['approval'] : null,
             ];
 
             $this->db->table('profile_skills')->insert($insert);
         }
+
+
         return true;
     }
 
@@ -297,12 +312,26 @@ class m_profile_mhs extends Model
     {
     }
 
-    public function approval_skill()
+    public function approval_skill($data = null)
     {
+        $approval = $this->db->table('profile_skills')->Where('id_profile_pendamping', $data['id_profile_pendamping'])->where('ref_pendampingan', $data['ref_pendampingan']);
+
+        if ($data['approval'] == 'terima') {
+            return $approval->update(['approval' => true]);
+        } else {
+            return $approval->update(['approval' => false]);
+        }
     }
 
-    public function approval_jenis_madif()
+    public function approval_jenis_madif($data = null)
     {
+        $approval = $this->db->table('profile_jenis_madif')->Where('id_profile_madif', $data['id_profile_madif']);
+
+        if ($data['approval'] == 'terima') {
+            return $approval->update(['approval' => true]);
+        } else {
+            return $approval->update(['approval' => false]);
+        }
     }
 
     public function reject_skill()
@@ -331,31 +360,42 @@ class m_profile_mhs extends Model
 
     public function getAllProfileMadif()
     {
-        // ambil biodata
         $biodata = $this;
-        $biodata->select('id_profile_mhs,nim,nickname,fullname,fakultas,jurusan,prodi,semester,name as role');
-        $biodata->join('biodata', 'biodata.nim_mhs = profile_mhs.nim');
+        $biodata->select('profile_mhs.id_profile_mhs,nim,nickname,fullname,fakultas,jurusan,prodi,semester,name as role,users.status, kategori_difabel.jenis');
+        $biodata->join('biodata', 'biodata.id_profile_mhs = profile_mhs.id_profile_mhs');
         $biodata->where('madif', 1);
-        $biodata->join('users', 'users.username = nim');
+        $biodata->join('users', 'users.username = profile_mhs.nim');
         $biodata->join('auth_groups_users', 'auth_groups_users.user_id = users.id');
         $biodata->join('auth_groups', 'auth_groups.id = auth_groups_users.group_id');
+        $biodata->join('profile_jenis_madif', 'profile_jenis_madif.id_profile_madif = profile_mhs.id_profile_mhs');
+        $biodata->join('kategori_difabel', 'kategori_difabel.id = profile_jenis_madif.id_jenis_difabel');
 
         return $biodata->findAll();
     }
 
     public function getAllProfilePendamping()
     {
-
-        // ambil biodata
         $biodata = $this;
-        $biodata->select('id_profile_mhs,nim,nickname,fullname,fakultas,jurusan,prodi,semester,name as role');
-        $biodata->join('biodata', 'biodata.nim_mhs = profile_mhs.nim');
+        $biodata->select('profile_mhs.id_profile_mhs,nim,nickname,fullname,fakultas,jurusan,prodi,semester,name as role,users.status');
+        $biodata->join('biodata', 'biodata.id_profile_mhs = profile_mhs.id_profile_mhs');
         $biodata->where('pendamping', 1);
-        $biodata->join('users', 'users.username = nim');
+        $biodata->join('users', 'users.username = profile_mhs.nim');
         $biodata->join('auth_groups_users', 'auth_groups_users.user_id = users.id');
         $biodata->join('auth_groups', 'auth_groups.id = auth_groups_users.group_id');
 
         return $biodata->findAll();
+    }
+
+    public function getAllProfileAdmin()
+    {
+        $biodata = $this->db->table('profile_admin');
+        $biodata->select('profile_admin.id_profile_admin,profile_admin.username,profile_admin.jabatan,biodata.nickname,biodata.fullname,biodata.jenis_kelamin, biodata.alamat,biodata.nomor_hp');
+        $biodata->join('biodata', 'biodata.id_profile_admin = profile_admin.id_profile_admin');
+        $biodata->join('users', 'users.username = profile_admin.username');
+        $biodata->join('auth_groups_users', 'auth_groups_users.user_id = users.id');
+        $biodata->join('auth_groups', 'auth_groups.id = auth_groups_users.group_id');
+
+        return $biodata->get()->getResultArray();
     }
 
     public function getJumlahUjianMHS($nim = 0)

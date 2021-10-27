@@ -84,7 +84,7 @@ $validasi_waktu_tidak_sesuai = session()->getFlashData('validasi_waktu_tidak_ses
                                 <!-- Basic table -->
                                 <div class="table-responsive">
                                     <table class="table">
-                                        <thead class="text-center">
+                                        <thead>
                                             <tr>
                                                 <th scope="col">No</th>
                                                 <th scope="col">Mata Kuliah</th>
@@ -92,10 +92,7 @@ $validasi_waktu_tidak_sesuai = session()->getFlashData('validasi_waktu_tidak_ses
                                                 <th scope="col">Jam</th>
                                                 <th scope="col">Ruangan</th>
                                                 <th scope="col">Keterangan</th>
-                                                <?php if (in_groups('admin')) : ?>
-                                                    <th scope="col">Presensi</th>
-                                                    <th scope="col">Laporan</th>
-                                                <?php endif; ?>
+                                                <th scope="col">Status</th>
                                                 <th scope="col">Aksi</th>
                                             </tr>
                                         </thead>
@@ -104,8 +101,8 @@ $validasi_waktu_tidak_sesuai = session()->getFlashData('validasi_waktu_tidak_ses
                                             <?php foreach ($jadwal as $j) : ?>
                                                 <tr class="align-middle <?= (session()->getFlashData('idUjian') == $j['id_jadwal_ujian']) ? 'table-danger' : '' ?>">
                                                     <th scope="row"><?= $i++; ?></th>
-                                                    <td><?= $j['mata_kuliah']; ?></td>
-                                                    <td class="text-center"><?= $j['tanggal_ujian']; ?></td>
+                                                    <td style="col-2"><?= $j['mata_kuliah']; ?></td>
+                                                    <td class="col-2"><?= date('d,M Y', strtotime($j['tanggal_ujian'])); ?></td>
 
                                                     <!-- Start hidden jam ujian -->
                                                     <!-- Untuk di fetch di modal edit -->
@@ -113,16 +110,42 @@ $validasi_waktu_tidak_sesuai = session()->getFlashData('validasi_waktu_tidak_ses
                                                     <td style="display: none;"><?= date('H:i', strtotime($j['waktu_selesai_ujian'])); ?></td>
                                                     <!-- End hidden jam ujian -->
 
-                                                    <td class="text-center"><?= date('H:i', strtotime($j['waktu_mulai_ujian'])); ?> - <?= date('H:i', strtotime($j['waktu_selesai_ujian'])); ?></td>
+                                                    <td class="col-2 mx-0"><?= date('H:i', strtotime($j['waktu_mulai_ujian'])); ?> - <?= date('H:i', strtotime($j['waktu_selesai_ujian'])); ?></td>
 
                                                     <td><?= $j['ruangan']; ?></td>
-                                                    <td><?= $j['keterangan']; ?></td>
+
+                                                    <td><button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#keteranganJadwal<?= $j['id_jadwal_ujian']; ?>" ?>
+                                                            Keterangan
+                                                        </button></td>
 
                                                     <!--  start hidden jadwal id -->
                                                     <td style="display: none;"><?= $j['id_jadwal_ujian']; ?></td>
                                                     <!-- end hidden jadwal id -->
 
-                                                    <td class="text-center">
+                                                    <?php if ($j['approval'] === '1') : ?>
+                                                        <td style="color: green;">
+                                                            Terverifikasi
+                                                        </td>
+                                                    <?php elseif ($j['approval'] === '0') : ?>
+                                                        <td style="color: red;">
+                                                            Ditolak
+                                                        </td>
+                                                    <?php elseif (in_groups('admin')) : ?>
+                                                        <?php if ($j['approval'] === null) : ?>
+                                                            <td>
+                                                                <a href="<?= base_url('c_jadwal_ujian/approval'); ?>/<?= $j['id_jadwal_ujian'], '/terima'; ?>" class="btn btn-success btn-sm my-1">Terima</a>
+                                                                <a href="<?= base_url('c_jadwal_ujian/approval'); ?>/<?= $j['id_jadwal_ujian'] . '/tolak'; ?>" class="btn btn-danger btn-sm">Tolak</a>
+                                                            </td>
+                                                        <?php endif; ?>
+                                                    <?php else : ?>
+                                                        <?php if ($j['approval'] === null) : ?>
+                                                            <td style="color: blue;">
+                                                                Menunggu verifikasi admin
+                                                            </td>
+                                                        <?php endif; ?>
+                                                    <?php endif; ?>
+
+                                                    <td>
                                                         <!-- Cara kerja:
                                                         1. Buat button/a.href
                                                         2. Buat atribut data-toggle, data-target, dan data-* untuk isi valuenya
@@ -130,15 +153,16 @@ $validasi_waktu_tidak_sesuai = session()->getFlashData('validasi_waktu_tidak_ses
                                                         4. Buat Script javascript untuk memasukkan data valuenya ke modal, dan ditaruh di akhir sebelum tag body -->
 
                                                         <!-- Button trigger modal Detail Jadwal Ujian -->
-                                                        <button type="button" class="btn btn-warning editJadwal" data-bs-toggle="modal" data-bs-target="#editJadwal<?= $j['id_jadwal_ujian']; ?>" ?>
+                                                        <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editJadwal<?= $j['id_jadwal_ujian']; ?>" ?>
                                                             <i class="fas fa-pen-square"></i>
                                                         </button>
 
 
                                                         <!-- Button Trigger Modal Hapus Jadwal Ujian -->
-                                                        <button type="submit" class="btn btn-danger my-1" data-bs-toggle="modal" data-bs-target="#delJadwal<?= $j['id_jadwal_ujian']; ?>">
+                                                        <button type="submit" class="btn btn-danger my-1 btn-sm" data-bs-toggle="modal" data-bs-target="#delJadwal<?= $j['id_jadwal_ujian']; ?>">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
+
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
@@ -155,8 +179,7 @@ $validasi_waktu_tidak_sesuai = session()->getFlashData('validasi_waktu_tidak_ses
                                             <div class="row">
                                                 <div class="col">
                                                     <p class="fs-4 text-center">Masukkan Jadwal Ujian</p>
-                                                    <!-- Form Tambah Jadwal Ujian -->
-                                                    <form action="/c_jadwal_ujian/saveJadwal" method="POST">
+                                 <form action="/c_jadwal_ujian/saveJadwal" method="POST">
                                                         <?= csrf_field(); ?>
 
                                                         <!-- id_profile_mhs -->
@@ -262,7 +285,8 @@ $validasi_waktu_tidak_sesuai = session()->getFlashData('validasi_waktu_tidak_ses
                                                         <div class="d-grid mt-3 gap-2 d-md-flex justify-content-md-end">
                                                             <button type="submit" class="btn btn-primary">Submit</button>
                                                         </div>
-                                                    </form>
+                                                    </form>                   <!-- Form Tambah Jadwal Ujian -->
+                                                    
                                                 </div>
                                             </div>
                                         </div>

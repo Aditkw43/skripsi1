@@ -94,19 +94,21 @@ class c_profile_pendamping extends BaseController
         }
         $nama_skill = $this->profile->getKategoriDifabel($data['ref_pendampingan']);
 
-        session()->setFlashdata('berhasil_ditambahkan', 'Referensi pendampingan ' . $nama_skill->jenis . ' berhasil ditambahkan dengan prioritas ke-' . $data['prioritas']);
+        session()->setFlashdata('berhasil_ditambahkan', 'Referensi pendampingan ' . $nama_skill['jenis'] . ' berhasil ditambahkan dengan prioritas ke-' . $data['prioritas']);
         return redirect()->back();
     }
 
     // Menyimpan skill pendamping yang diedit
     public function editSkill()
     {
+        $get_approval = $this->request->getVar('approval');
         $data = [
             'id_profile_pendamping' => $this->request->getVar('id_profile_pendamping'),
             'old_ref_pendampingan' => $this->request->getVar('old_ref_pendampingan'),
             'old_prioritas' => $this->request->getVar('old_prioritas'),
             'ref_pendampingan' => $this->request->getVar('ref_pendampingan'),
             'prioritas' => $this->request->getVar('prioritas'),
+            'approval' => ($get_approval == '') ? null : $get_approval,
         ];
 
         // Edit skill
@@ -115,11 +117,11 @@ class c_profile_pendamping extends BaseController
         $nama_skill = $this->profile->getKategoriDifabel($data['ref_pendampingan']);
 
         if (!$validasi) {
-            session()->setFlashdata('tidak_diedit', 'Tidak ada perubahan pada skill referensi pendampingan ' . $nama_skill->jenis);
+            session()->setFlashdata('tidak_diedit', 'Tidak ada perubahan pada skill referensi pendampingan ' . $nama_skill['jenis']);
             return redirect()->back();
         }
 
-        session()->setFlashdata('berhasil_diedit', 'Skill referensi pendampingan ' . $nama_skill->jenis . ' berhasil diedit dengan prioritas ke-' . $data['prioritas']);
+        session()->setFlashdata('berhasil_diedit', 'Skill referensi pendampingan ' . $nama_skill['jenis'] . ' berhasil diedit dengan prioritas ke-' . $data['prioritas']);
         return redirect()->back();
     }
 
@@ -137,7 +139,7 @@ class c_profile_pendamping extends BaseController
 
         $nama_skill = $this->profile->getKategoriDifabel($data['ref_pendampingan']);
 
-        session()->setFlashdata('berhasil_dihapus', 'Skill referensi pendampingan ' . $nama_skill->jenis . ' berhasil dihapus');
+        session()->setFlashdata('berhasil_dihapus', 'Skill referensi pendampingan ' . $nama_skill['jenis'] . ' berhasil dihapus');
         return redirect()->back();
     }
 }

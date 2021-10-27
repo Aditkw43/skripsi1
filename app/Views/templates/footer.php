@@ -16,4 +16,18 @@
 <!-- Theme JS -->
 <script src="/assets/js/theme.min.js"></script>
 
-<!-- Modal -->
+<!-- My JS -->
+<script>
+    function showDiv(element) {
+        if (element.value == 'cuti_semester') {
+            document.getElementById('hidden_tanggal_cuti_semester').style.display = '';
+            document.getElementById('hidden_tanggal_cuti_sementara').style.display = 'none';
+        } else if (element.value == 'cuti_sementara') {
+            document.getElementById('hidden_tanggal_cuti_sementara').style.display = '';
+            document.getElementById('hidden_tanggal_cuti_semester').style.display = 'none';
+        } else {
+            document.getElementById('hidden_tanggal_cuti_sementara').style.display = 'none';
+            document.getElementById('hidden_tanggal_cuti_semester').style.display = 'none';
+        }
+    }
+</script>

@@ -42,14 +42,25 @@ class c_jadwal_ujian extends BaseController
         // START
         $jadwal = [];
         $temp = [];
+        $all_mhs = [];
         $builder_jadwal = '';
         $profile = model(m_profile_mhs::class);
 
         if ($jenis_mhs == 'madif') {
-            $profile = $profile->getAllProfile('madif');
-            foreach ($profile as $key) {
+            $get_all_profile_madif = $profile->getAllProfile('madif');
+            foreach ($get_all_profile_madif as $key) {
                 $builder_jadwal = $this->db->table('jadwal_ujian')->select('nim,fullname, fakultas, semester')->join('profile_mhs', 'profile_mhs.id_profile_mhs=jadwal_ujian.id_profile_mhs')->orderBy('tanggal_ujian', 'asc')->orderBy('waktu_mulai_ujian', 'asc')->where('madif', 1)->join('biodata', 'biodata.id_profile_mhs = jadwal_ujian.id_profile_mhs')->getWhere(['profile_mhs.id_profile_mhs' => $key['id_profile_mhs']])->getResultArray();
+
+                $get_bio = $this->biodata->getBiodata($key['id_profile_mhs']);
+                $get_profile = $this->biodata->getProfile($key['id_profile_mhs']);
+                $all_mhs[] = $get_bio + $get_profile;
+
+                if (empty($builder_jadwal)) {
+                    continue;
+                }
+
                 $temp = [
+                    'id_profile_mhs' => $key['id_profile_mhs'],
                     'nim' => $key['nim'],
                     'nama' => $builder_jadwal[0]['fullname'],
                     'fakultas' => $builder_jadwal[0]['fakultas'],
@@ -59,10 +70,20 @@ class c_jadwal_ujian extends BaseController
                 $jadwal[] = $temp;
             }
         } else {
-            $profile = $profile->getAllProfile('pendamping');
-            foreach ($profile as $key) {
+            $get_all_profile_pendamping = $profile->getAllProfile('pendamping');
+            foreach ($get_all_profile_pendamping as $key) {
                 $builder_jadwal = $this->db->table('jadwal_ujian')->select('nim,fullname, fakultas, semester')->join('profile_mhs', 'profile_mhs.id_profile_mhs=jadwal_ujian.id_profile_mhs')->orderBy('tanggal_ujian', 'asc')->orderBy('waktu_mulai_ujian', 'asc')->where('pendamping', 1)->join('biodata', 'biodata.id_profile_mhs = jadwal_ujian.id_profile_mhs')->getWhere(['profile_mhs.id_profile_mhs' => $key['id_profile_mhs']])->getResultArray();
+
+                $get_bio = $this->biodata->getBiodata($key['id_profile_mhs']);
+                $get_profile = $this->biodata->getProfile($key['id_profile_mhs']);
+                $all_mhs[] = $get_bio + $get_profile;
+
+                if (empty($builder_jadwal)) {
+                    continue;
+                }
+
                 $temp = [
+                    'id_profile_mhs' => $key['id_profile_mhs'],
                     'nim' => $key['nim'],
                     'nama' => $builder_jadwal[0]['fullname'],
                     'fakultas' => $builder_jadwal[0]['fakultas'],
@@ -77,8 +98,11 @@ class c_jadwal_ujian extends BaseController
         $data = [
             'title' => 'Daftar Semua Jadwal Ujian ' . $title,
             'jadwal_ujian' => $jadwal,
+            'jenis_mhs' => $this->request->getUri()->getSegment(2),
+            'all_mhs' => $all_mhs,
             'user' => $this->dataUser,
         ];
+        // dd($data);
 
         return view('admin/jadwal_ujian/v_all_jadwal_ujian', $data);
     }
@@ -152,6 +176,10 @@ class c_jadwal_ujian extends BaseController
             'ruangan' => $this->request->getVar('ruangan'),
             'keterangan' => $this->request->getVar('keterangan'),
         ]);
+
+        if (!empty($this->request->getVar('admin'))) {
+            $this->jadwal_ujian->update($data['id_profile_mhs'], ['approval' => true]);
+        }
 
         session()->setFlashdata('berhasil_ditambahkan', 'Jadwal berhasil ditambahkan');
         return redirect()->back();
@@ -247,6 +275,18 @@ class c_jadwal_ujian extends BaseController
         $matkul = $this->jadwal_ujian->getDetailUjian($this->request->getVar('id_jadwal_ujian'));
         session()->setFlashdata('berhasil_dihapus', 'Jadwal ujian ' . $matkul['mata_kuliah'] . ' berhasil dihapus');
         $this->jadwal_ujian->delete($this->request->getVar('id_jadwal_ujian'));
+        return redirect()->back();
+    }
+
+    public function approval()
+    {
+        $get_id_jadwal = $this->request->getUri()->getSegment(3);
+        $status = $this->request->getUri()->getSegment(4);
+        if ($status == 'terima') {
+            $this->jadwal_ujian->update($get_id_jadwal, ['approval' => 1]);
+        } elseif ($status == 'tolak') {
+            $this->jadwal_ujian->update($get_id_jadwal, ['approval' => 0]);
+        }
         return redirect()->back();
     }
 }

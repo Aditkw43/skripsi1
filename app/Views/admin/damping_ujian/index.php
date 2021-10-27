@@ -22,42 +22,27 @@
                     <!-- Basic table -->
                     <div class="table-responsive">
                         <table class="table table-hover table-dark" style="border-radius: 5px 5px 0px 0px; overflow: hidden; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);">
-                            <thead class="text-center">
+                            <thead>
                                 <tr>
                                     <th scope="col">No</th>
                                     <th scope="col">NIM</th>
-                                    <th scope="col">Nama</th>
+                                    <th scope="col">Mahasiswa Difabel</th>
                                     <th scope="col">Fakultas</th>
                                     <th scope="col">Jumlah Didampingi</th>
                                     <th scope="col">Jumlah Tidak Didampingi</th>
                                     <th scope="col">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody class="text-center table-light">
-
-                                <?php if (!empty($data)) : ?>
-                                    <?php $i = 1 ?>
-                                    <?php foreach ($himpunan_damping_madif as $dd) : ?>
-                                        <tr class="align-middle">
-
-                                            <input type="hidden" name="id_profile_madif" value="<?= $dd['id_profile_madif']; ?>">
-
-                                            <th scope="row"><?= $i; ?></th>
-                                            <td><?= $dd['nim']; ?></td>
-                                            <td><?= $dd['nama']; ?></td>
-                                            <td><?= $dd['fakultas']; ?></td>
-                                            <td><?= $dd['jumlah_didampingi']; ?></td>
-                                            <td><?= $dd['jumlah_tidak_didampingi']; ?></td>
-                                            <td class="text-center">
-                                                <button type="button" class="btn btn-info btn-sm editJadwal" data-bs-toggle="modal" data-bs-target="#detailDamping<?= $dd['id_profile_madif']; ?>" ?>
-                                                    Detail
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        <?php $i++; ?>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-
+                            <tbody class="table-light">
+                                <tr>
+                                    <th></th>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -67,7 +52,7 @@
     </div>
 </div>
 
-<!-- Modal Cek Tidak Didampingi-->
+<!-- Modal Generate-->
 <div class="modal fade" id="generate" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-md">
         <div class="modal-content">

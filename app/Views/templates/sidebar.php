@@ -60,13 +60,15 @@
                     <div id="navAuthentication" class="collapse " data-bs-parent="#sideNavbar">
                         <ul class="nav flex-column">
                             <li class="nav-item">
-                                <a class="nav-link " href="<?= base_url('/viewDamping/' . user()->username); ?>"> List Pendampingan</a>
+                                <a class="nav-link " href="<?= base_url('/viewDamping/' . user()->username); ?>"> List Damping</a>
                             </li>
+                            <?php if (in_groups('madif')) : ?>
+                                <li class="nav-item">
+                                    <a class="nav-link  " href="<?= base_url('/viewTidakDamping/' . user()->username); ?>"> List Tidak Didampingi</a>
+                                </li>
+                            <?php endif; ?>
                             <li class="nav-item">
-                                <a class="nav-link  " href="/pages/sign-up.html"> Presensi</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link " href="/pages/forget-password.html">
+                                <a class="nav-link " href="<?= base_url('/viewLaporan/' . user()->username); ?>">
                                     Laporan Pendampingan
                                 </a>
                             </li>
@@ -77,6 +79,7 @@
             <?php endif; ?>
 
             <?php if (in_groups('admin')) : ?>
+                <!-- Jadwal Ujian -->
                 <li class="nav-item">
                     <a class="nav-link has-arrow  collapsed " href="#!" data-bs-toggle="collapse" data-bs-target="#navComponents" aria-expanded="false" aria-controls="navComponents">
                         <i class="fas fa-clipboard-list nav-icon icon-xs me-2"></i> Jadwal Ujian
@@ -97,6 +100,27 @@
                     </div>
                 </li>
 
+                <!-- Pendampingan -->
+                <li class="nav-item">
+                    <a class="nav-link has-arrow  collapsed " href="#!" data-bs-toggle="collapse" data-bs-target="#navAuthentication" aria-expanded="false" aria-controls="navAuthentication">
+                        <i class="fas fa-calendar-week nav-icon icon-xs me-2"></i> Pendampingan Ujian
+                    </a>
+
+                    <div id="navAuthentication" class="collapse " data-bs-parent="#sideNavbar">
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link " href="<?= base_url('/viewAllDamping'); ?>"> List Damping</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link " href="<?= base_url('/viewAllLaporan'); ?>">
+                                    Laporan Pendampingan
+                                </a>
+                            </li>
+
+                        </ul>
+                    </div>
+                </li>
+
                 <!-- Generate Pendampingan -->
                 <li class="nav-item">
                     <a class="nav-link " href="<?= base_url('c_damping_ujian'); ?>">
@@ -106,54 +130,115 @@
                 </li>
             <?php endif; ?>
 
-            <!-- Judul Perizinan -->
-            <li class="nav-item">
-                <div class="navbar-heading">Perizinan</div>
-            </li>
+            <?php if (!in_groups('admin')) : ?>
+                <!-- Pengajuan Perizinan Pendamping -->
+                <?php if (in_groups('pendamping')) : ?>
+                    <!-- Judul Perizinan -->
+                    <li class="nav-item">
+                        <div class="navbar-heading">Perizinan</div>
+                    </li>
 
-            <!-- List Perizinan -->
-            <li class="nav-item">
-                <a class="nav-link " href="/pages/tables.html">
-                    <i class="nav-icon icon-xs me-2 bi bi-table">
-                    </i>
-                    List Perizinan
-                </a>
-            </li>
+                    <li class="nav-item">
+                        <a class="nav-link has-arrow  collapsed " href="#!" data-bs-toggle="collapse" data-bs-target="#navComponents" aria-expanded="false" aria-controls="navComponents">
+                            <i class="fas fa-file-medical nav-icon icon-xs me-2"></i> Pengajuan Izin
+                        </a>
+                        <div id="navComponents" class="collapse " data-bs-parent="#sideNavbar">
+                            <ul class="nav flex-column">
+                                <li class="nav-item">
+                                    <a class="nav-link " href="<?= base_url('/viewIzin/' . user()->username); ?>" aria-expanded="false">
+                                        Izin Tidak Damping
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link " href="<?= base_url('/viewCuti/' . user()->username); ?>" aria-expanded="false">
+                                        Izin Cuti
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
 
-            <!-- Pengajuan Perizinan -->
-            <li class="nav-item">
-                <a class="nav-link has-arrow  collapsed " href="#!" data-bs-toggle="collapse" data-bs-target="#navComponents" aria-expanded="false" aria-controls="navComponents">
-                    <i class="fas fa-file-medical nav-icon icon-xs me-2"></i> Pengajuan Izin
-                </a>
-                <div id="navComponents" class="collapse " data-bs-parent="#sideNavbar">
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link " href="/components/accordions.html" aria-expanded="false">
-                                Izin Tidak Damping
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link " href="/components/alerts.html" aria-expanded="false">
-                                Izin Cuti
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
+                    <li class="nav-item">
+                        <a class="nav-link " href="<?= base_url('/konfirmasi_pengganti/' . user()->username); ?>">
+                            <i class="nav-icon icon-xs me-2 bi bi-check2-square">
+                            </i>
+                            Konfirmasi Pengganti
+                        </a>
+                    </li>
+                <?php endif; ?>
+            <?php else : ?>
+                <!-- Judul Konfirmasi -->
+                <li class="nav-item">
+                    <div class="navbar-heading">Verifikasi</div>
+                </li>
 
-            <!-- Konfirmasi Perizinan -->
-            <li class="nav-item">
-                <a class="nav-link " href="/pages/tables.html">
-                    <i class="fas fa-clipboard-check nav-icon icon-xs me-2"></i>
-                    Kofirmasi Perizinan
-                </a>
-            </li>
+                <!-- Konfirmasi Perizinan -->
+                <li class="nav-item">
+                    <a class="nav-link has-arrow  collapsed " href="#!" data-bs-toggle="collapse" data-bs-target="#konfirmasi_izin_admin" aria-expanded="false" aria-controls="konfirmasi_izin_admin">
+                        <i class="fas fa-calendar-week nav-icon icon-xs me-2"></i> Perizinan
+                    </a>
+
+                    <div id="konfirmasi_izin_admin" class="collapse " data-bs-parent="#sideNavbar">
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link " href="<?= base_url('/viewAllCuti'); ?>"> Izin Cuti</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link " href="<?= base_url('/viewAllIzin'); ?>">
+                                    Izin Tidak Damping
+                                </a>
+                            </li>
+
+                        </ul>
+                    </div>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link " href="<?= base_url('/viewAllSkill'); ?>">
+                        <i class="fas fa-clipboard-check nav-icon icon-xs me-2"></i>
+                        Skill Pendamping
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link " href="<?= base_url('/viewAllJenisMadif'); ?>">
+                        <i class="fas fa-clipboard-check nav-icon icon-xs me-2"></i>
+                        Jenis Difabel Madif
+                    </a>
+                </li>
+            <?php endif; ?>
 
             <!-- Judul Setting -->
             <li class="nav-item">
                 <div class="navbar-heading">Setting</div>
             </li>
 
+            <?php if (in_groups('admin')) : ?>
+                <!-- User Management Setting -->
+                <li class="nav-item">
+                    <a class="nav-link has-arrow  collapsed " href="#!" data-bs-toggle="collapse" data-bs-target="#user_management" aria-expanded="false" aria-controls="user_management">
+                        <i class="fas fa-user-cog nav-icon icon-xs me-2"></i> User Management
+                    </a>
+
+                    <div id="user_management" class="collapse " data-bs-parent="#sideNavbar">
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link " href="<?= base_url('/viewUserAdmin'); ?>"> Admin </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link " href="<?= base_url('/viewUserMadif'); ?>">
+                                    Mahasiswa Difabel
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link " href="<?= base_url('/viewUserPendamping'); ?>">
+                                    Pendamping
+                                </a>
+                            </li>
+
+                        </ul>
+                    </div>
+                </li>
+            <?php endif; ?>
             <!-- Nav item -->
             <li class="nav-item">
                 <a class="nav-link has-arrow " href="<?= base_url('logout'); ?>">

@@ -36,30 +36,51 @@ $routes->get('/admin', 'Admin::index', ['filter' => 'role:admin']);
 $routes->get('/admin/index', 'Admin::index', ['filter' => 'role:admin']);
 $routes->get('/admin/(:num)', 'Admin::detail/$1', ['filter' => 'role:admin']);
 
+// Perizinan
+$routes->get('/viewCuti/(:num)', 'c_perizinan::viewCuti/$1');
+$routes->get('/viewIzin/(:num)', 'c_perizinan::viewIzin/$1');
+$routes->get('/konfirmasi_pengganti/(:num)', 'c_perizinan::konfirmasi_pengganti/$1');
+$routes->get('/viewAllCuti', 'c_perizinan::viewAllCuti');
+$routes->get('/viewAllIzin', 'c_perizinan::viewAllIzin');
+
 // Pendampingan
 $routes->get('/generate', 'c_damping_ujian::generate', ['filter' => 'role:admin']);
 $routes->get('/saveGenerate', 'c_damping_ujian::saveGenerate', ['filter' => 'role:admin']);
 $routes->get('/c_user/updateProfile', 'c_user::updateProfile');
 $routes->get('/viewDamping/(:num)', 'c_damping_ujian::viewDamping/$1');
-$routes->get('/konfirmasiDamping/(:num)', 'c_damping_ujian::konfirmasiDamping/$1');
+$routes->get('/viewAllDamping', 'c_damping_ujian::viewAllDamping');
+$routes->get('/viewTidakDamping/(:num)', 'c_damping_ujian::viewTidakDamping/$1');
+$routes->get('/viewLaporan/(:num)', 'c_damping_ujian::viewLaporan/$1');
+$routes->get('/changeStatus/(:any)', 'c_damping_ujian::changeStatus/$1');
 
-// Profile
-$routes->get('/viewProfile/(:num)', 'c_user::viewProfile/$1');
-$routes->get('/c_user/updateProfile', 'c_user::updateProfile');
+// Laporan
+$routes->get('/viewAllLaporan', 'c_damping_ujian::viewAllLaporan');
+$routes->get('/saveLaporan/(:any)', 'c_damping_ujian::saveLaporan/$1');
 
+// User Management
+$routes->get('/viewUserAdmin', 'c_user::viewUserAdmin', ['filter' => 'role:admin']);
+$routes->get('/viewUserMadif', 'c_user::viewUserMadif', ['filter' => 'role:admin']);
+$routes->get('/viewUserPendamping', 'c_user::viewUserPendamping', ['filter' => 'role:admin']);
+
+// Jadwal Ujian
 $routes->get('/viewJadwal/(:num)', 'c_jadwal_ujian::viewJadwal/$1');
 $routes->get('/viewAllJadwal/(:alpha)', 'c_jadwal_ujian::index/$1');
 $routes->delete('/c_jadwal_ujian/delJadwal', 'c_jadwal_ujian::delJadwal');
 $routes->get('/c_jadwal_ujian/editJadwal', 'c_jadwal_ujian::editJadwal');
 
+// Profile
+$routes->get('/viewProfile/(:num)', 'c_user::viewProfile/$1');
+$routes->get('/c_user/updateProfile', 'c_user::updateProfile');
+
 $routes->get('/viewSkill/(:num)', 'c_profile_pendamping::viewSkill/$1');
+$routes->get('/viewAllSkill', 'c_user::viewAllSkill', ['filter' => 'role:admin']);
 $routes->delete('/c_profile_pendamping/delSkill', 'c_profile_pendamping::delSkill');
 $routes->get('/c_profile_pendamping/editSkill', 'c_profile_pendamping::editSkill');
 
 $routes->get('/jenisMadif/(:num)', 'jenisMadif::jenisUserMadif/$1');
+$routes->get('/viewAllJenisMadif', 'c_user::viewAllJenisMadif', ['filter' => 'role:admin']);
 $routes->delete('/madif/(:alphanum)', 'madif::delSkill/$1');
 $routes->get('/editJenisMadif/(:alphanum)', 'jenisMadif::editJenisMadif/$1');
-
 
 /*
  * --------------------------------------------------------------------

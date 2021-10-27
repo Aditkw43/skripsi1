@@ -39,7 +39,7 @@ class m_damping_ujian extends Model
             }
 
             // Memasukkan ref_pendampingan dan prioritas
-            (isset($key['ref_pendampingan'])) ? ($insert['ref_pendampingan'] = $nama_skill->jenis) : $insert['ref_pendampingan'] = '-';
+            (isset($key['ref_pendampingan'])) ? ($insert['ref_pendampingan'] = $nama_skill['jenis']) : $insert['ref_pendampingan'] = '-';
             (isset($key['ref_pendampingan'])) ? ($insert['prioritas'] = $prioritas_skill) : $insert['prioritas'] = '-';
 
             // Get jadwal ujian
@@ -52,15 +52,16 @@ class m_damping_ujian extends Model
     }
 
     public function getAllDamping($data = null)
-    {        
+    {
         // Semua damping
         if (empty($data)) {
             return $this->findAll();
         }
+
         if ($data['pendamping'] == 1) {
             // Semua pendampingan sesuai dengan id profile mahasiswa
             return $this->builder()->select('*')->getWhere(['id_profile_pendamping' => $data['id_profile_mhs']])->getResultArray();
-        } else {            
+        } else {
             // Semua pendampingan sesuai dengan id profile mahasiswa
             return $this->builder()->select('*')->getWhere(['id_profile_madif' => $data['id_profile_mhs']])->getResultArray();
         }
@@ -68,18 +69,64 @@ class m_damping_ujian extends Model
 
     public function getDetailDamping($id_damping = null)
     {
-        // id_jadwal_ujian_madif as semua detail jadwal ujian, 
-        // id_profile_madif dan id_profile_pendamping as biodata mahasiswa
-        // jenis ujian
-        // status damping
-        // model jadwal ujian, model biodata, model profile
-        $data_damping = $this->find($id_damping);
-        $jadwal_ujian = $this->builder()->select('*')->join('jadwal_ujian', 'jadwal_ujian.id_jadwal_ujian = damping_ujian.id_jadwal_ujian_madif')->where('');
-
-        $madif = $this->builder()->select('jadwal_ujian.*,profile')->where(['id_profile_madif' => $id_profile_mhs])->getResultArray();
-        $pendamping = $this->builder()->select('jadwal_ujian.*,profile')->where(['id_profile_madif' => $id_profile_mhs])->getResultArray();
+        return $this->find($id_damping);
     }
+
     public function updateDamping()
     {
+    }
+
+    public function presensi($data = null)
+    {
+        // Status kehadiran untuk menentukan apakah presensi telat atau tidak        
+        $insert = [
+            'id_damping_ujian' => $data['id_damping'],
+            'tepat_waktu' => null,
+            'waktu_hadir' => null,
+            'waktu_selesai' => null,
+            'approval_madif' => null,
+        ];
+
+        // Jika jadwal baru digenerate
+        if (empty($data['status'])) {
+            dd($insert);
+        }
+
+        // Waktu Melakukan Presensi
+        $now = Time::now('Asia/Jakarta', 'id_ID');
+        $waktu_presensi = $now->toTimeString();
+
+        // Mengambil waktu ujian
+        $m_jadwal = model(m_jadwal_ujian::class);
+        $get_detail_damping = $this->getDetailDamping($data['id_damping']);
+        $get_jadwal = $m_jadwal->getDetailUjian($get_detail_damping['id_jadwal_ujian_madif']);
+        $get_waktu_mulai_ujian = $get_jadwal['waktu_mulai_ujian'];
+
+        if ($data['status'] == 'konfirmasi_presensi_hadir') {
+            // Tepat waktu untuk menentukan apakah presensi telat atau tidak
+            $insert['tepat_waktu'] = $get_waktu_mulai_ujian > $waktu_presensi;
+            $insert['waktu_hadir'] = $waktu_presensi;
+            return $this->db->table('presensi')->insert($insert);
+        } elseif ($data['status'] == 'pendampingan') {
+            $insert = $this->getPresensi($insert['id_damping_ujian']);
+            $insert['approval_madif'] = true;
+        } elseif ($data['status'] == 'laporan') {
+            $insert = $this->getPresensi($insert['id_damping_ujian']);
+            $insert['waktu_selesai'] = $waktu_presensi;
+        } else {
+            return $this->db->table('presensi')->delete(['id_damping_ujian' => $insert['id_damping_ujian']]);
+        }
+
+        return $this->db->table('presensi')->update($insert, ['id_damping_ujian' => $insert['id_damping_ujian']]);
+    }
+
+    public function getPresensi($id_damping_ujian = 0)
+    {
+        return $this->db->table('presensi')->getWhere(['id_damping_ujian' => $id_damping_ujian])->getRowArray();
+    }
+
+    public function getLaporan($id_damping_ujian = 0)
+    {
+        return $this->db->table('laporan_damping')->getWhere(['id_damping' => $id_damping_ujian])->getRowArray();
     }
 }
