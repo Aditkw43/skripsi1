@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use CodeIgniter\I18n\Time;
 use CodeIgniter\HTTP\Request;
+use CodeIgniter\Controller;
 
 use App\Models\m_biodata;
 use App\Models\m_cuti;
@@ -12,6 +13,8 @@ use App\Models\m_izin_tidak_damping;
 use App\Models\m_jadwal_ujian;
 use App\Models\m_laporan_damping;
 use App\Models\m_profile_mhs;
+
+use App\Controllers\c_profile_pendamping;
 
 class c_perizinan extends BaseController
 {
@@ -306,7 +309,6 @@ class c_perizinan extends BaseController
                     $jenis_madif = $this->profile_mhs->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
 
                     $get_all_pendamping['jenis_difabel'] = $jenis_madif;
-
                     $find = $this->damping_ujian->plottingSkill($get_all_pendamping);
                     unset($get_all_pendamping['jenis_difabel']);
 
@@ -343,73 +345,109 @@ class c_perizinan extends BaseController
         // Approval perizinan tanpa pengganti
         $get_all_pendamping = $this->profile_mhs->getAllProfilePendamping();
 
-        foreach ($get_all_pendamping as $gap) {
-            $all_id_profile_pendamping[] = $gap['id_profile_mhs'];
-        }
-
         if (!empty($izin_tanpa_pengganti_approval)) {
             foreach ($izin_tanpa_pengganti_approval as $key5 => $value5) {
-                $get_all_pendamping = $this->profile_mhs->getAllProfilePendamping();
-
-                $id_jenis_madif = $this->profile_mhs->getJenisMadif($value5['jadwal_ujian']['id_profile_mhs']);
-                $jenis_madif = $this->profile_mhs->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
-                $get_all_pendamping['jenis_difabel'] = $jenis_madif;
-                // Plotting skill
-                $skill_sesuai = $this->damping_ujian->plottingSkill($get_all_pendamping);
-
-                // START Plotting jadwal 
-                foreach ($skill_sesuai as $kunci1 => $ss1) {
-                    if ($value5['pendamping_lama']['id_profile_mhs'] == $ss1['id_profile_pendamping']) {
-                        unset($skill_sesuai[$kunci1]);
+                foreach ($get_all_pendamping as $gap) {
+                    if ($gap['id_profile_mhs'] == $value5['pendamping_lama']['id_profile_mhs']) {
                         continue;
                     }
-                    $skill_sesuai[$kunci1] = $ss1['id_profile_pendamping'];
+                    $all_id_profile_pendamping[] = $gap['id_profile_mhs'];
                 }
 
                 $data_plotting_jadwal = [
                     'jadwal_madif' => $value5['jadwal_ujian'],
-                    'count_pendamping' => $skill_sesuai,
+                    'all_id_pendamping' => $all_id_profile_pendamping,
                 ];
-                $temp_jadwal_sesuai = $this->damping_ujian->plottingJadwal($data_plotting_jadwal);
 
-                if ($temp_jadwal_sesuai) {
-                    foreach ($temp_jadwal_sesuai as $kunci => $tjs) {
-                        $get_profile = $this->biodata->getProfile($tjs);
-                        $temp_jadwal_sesuai[$kunci] = $get_profile;
+                // Plotting jadwal 
+                d($data_plotting_jadwal);
+                $jadwal_sesuai = $this->damping_ujian->plottingJadwal1($data_plotting_jadwal);
+                // Plotting skill       
+                $id_jenis_madif = $this->profile_mhs->getJenisMadif($value5['jadwal_ujian']['id_profile_mhs']);
+                $jenis_madif = $this->profile_mhs->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
+                $insert_all_id_pendamping_skill = [];
+
+                foreach ($jadwal_sesuai as $js) {
+                    $insert_all_id_pendamping_skill[] = $js['id_profile_pendamping'];
+                }
+                $data_plotting_skill = [
+                    'jenis_difabel' => $jenis_madif,
+                    'all_id_pendamping' => $insert_all_id_pendamping_skill,
+                ];
+                d($data_plotting_skill);
+                $skill_sesuai = $this->damping_ujian->plottingSkill1($data_plotting_skill);
+
+                $result = [];
+                foreach ($skill_sesuai as $ss1) {
+                    foreach ($jadwal_sesuai as $js2) {
+                        if ($ss1['id_profile_pendamping'] == $js2['id_profile_pendamping']) {
+                            $result[] = $ss1 + $js2;
+                        }
                     }
+                }
+
+                // Tambah izin tidak damping
+                $columns1 = array_column($result, 'jadwal_cocok');
+                $columns2 = array_column($result, 'skill_cocok');
+                $columns3 = array_column($result, 'prioritas');
+                $columns4 = array_column($result, 'id_profile_pendamping');
+                array_multisort($columns1, SORT_DESC, $columns2, SORT_DESC, $columns3, SORT_ASC, $columns4, SORT_ASC, $result);
+
+                $contoh = $data_plotting_jadwal + $data_plotting_skill;                
+                $hasil = $this->damping_ujian->findPendampingAlt1($contoh);
+                d($hasil);
+                d($result);
+                d($jadwal_sesuai);
+                dd($skill_sesuai);
+
+                foreach ($jadwal_sesuai as $kunci => $tjs) {
+                    dd($jadwal_sesuai);
+                    $get_profile = $this->biodata->getProfile($tjs['id_profile_mhs']);
+                    $jadwal_sesuai[$kunci] = $get_profile;
+                }
+                dd($jadwal_sesuai);
+
+                if ($skill_sesuai) {
+                    $cocok_skill = true;
                 } else {
-                    $temp_jadwal_sesuai = $this->profile_mhs->getAllProfilePendamping();
+                    $jadwal_sesuai = $this->profile_mhs->getAllProfilePendamping();
+                    $jadwal_sesuai['jenis_difabel'] = $jenis_madif;
+                    $skill_sesuai = $this->damping_ujian->plottingSkill($jadwal_sesuai);
+                    foreach ($skill_sesuai as $key7 => $value7) {
+                        if ($value7['id_profile_pendamping'] == $value5['pendamping_lama']['id_profile_mhs']) {
+                            unset($skill_sesuai[$key7]);
+                        }
+                    }
                 }
                 // END Plotting Jadwal
 
+                $get_all_pendamping = $this->profile_mhs->getAllProfilePendamping();
                 $data_pendamping_alt = [
-                    'hasil_find_skill' => $temp_jadwal_sesuai,
+                    'hasil_find_skill' => $skill_sesuai,
                     'get_all_pendamping' => $get_all_pendamping,
                 ];
-                // find pendamping Alt
-                d($temp_jadwal_sesuai);
-                dd($data_pendamping_alt);
+                // find pendamping Alt       
                 $pendamping_alt = $this->damping_ujian->findPendampingAlt($data_pendamping_alt);
 
-                unset($get_all_pendamping['jenis_difabel']);
-                foreach ($pendamping_alt as $key7 => $value7) {
-                    $prioritas = false;
-                    $pendamping_alt[$key7]['nickname'] = $value7['biodata_pendamping_alt']['nickname'];
-                    unset($pendamping_alt[$key7]['biodata_pendamping_alt']);
-                    foreach ($temp_jadwal_sesuai as $key8) {
-                        if ($value7['id_profile_pendamping'] == $key8['id_profile_mhs']) {
-                            $pendamping_alt[$key7]['kecocokan_jadwal'] = true;
-                            $prioritas = true;
-                            break;
-                        }
-                    }
+                unset($jadwal_sesuai['jenis_difabel']);
+                // foreach ($pendamping_alt as $key8 => $value8) {
+                //     $prioritas = false;
+                //     $pendamping_alt[$key8]['nickname'] = $value8['biodata_pendamping_alt']['nickname'];
+                //     unset($pendamping_alt[$key8]['biodata_pendamping_alt']);
+                //     foreach ($jadwal_sesuai as $key9) {
+                //         if ($value8['id_profile_pendamping'] == $key9['id_profile_mhs']) {
+                //             $pendamping_alt[$key8]['kecocokan_jadwal'] = true;
+                //             $prioritas = true;
+                //             break;
+                //         }
+                //     }
 
-                    if (!$prioritas) {
-                        $pendamping_alt[$key7]['kecocokan_jadwal'] = false;
-                    }
-                }
+                //     if (!$prioritas) {
+                //         $pendamping_alt[$key8]['kecocokan_jadwal'] = false;
+                //     }
+                // }
                 d($pendamping_alt);
-                d($temp_jadwal_sesuai);
+                dd($jadwal_sesuai);
 
                 $izin_tanpa_pengganti_approval[$key5]['pendamping_alt'] = $pendamping_alt;
             }
