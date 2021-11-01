@@ -617,8 +617,8 @@ class c_damping_ujian extends BaseController
          */
         // Menghimpun id pendamping
         $count_jumlah_damping = [];
-        foreach ($profile_pendamping as $key) {
-            $count_jumlah_damping[$key['id_profile_mhs']] = 0;
+        foreach ($profile_pendamping as $pp) {
+            $count_jumlah_damping[$pp['id_profile_mhs']] = 0;
         }
 
         /**
@@ -634,27 +634,23 @@ class c_damping_ujian extends BaseController
 
         // Melakukan Plottingan Pendampingan
         foreach ($all_jadwal_madif as $key) {
-
+            // START keperluan
             $insert['id_jadwal_ujian_madif'] = $key['id_jadwal_ujian'];
             $insert['id_profile_madif'] = $key['id_profile_mhs'];
-
             //Jika jumlah damping sama, mengurutkan pendamping dari key terkecil hingga tebesar
             ksort($count_jumlah_damping);
-
             // Mengurutkan pendamping dari paling sedikit mendamping hingga paling banyak. Tidak berlaku bagi jumlah damping sama                    
             asort($count_jumlah_damping);
-
             // Pendamping hanya boleh mendampingi sebanyak 5x dalam seminggu, sesuai dengan aturan PSLD UB
             foreach ($count_jumlah_damping as $key1 => $value1) {
                 if ($value1 == 5) {
                     unset($count_jumlah_damping[$key1]);
                 }
             }
+            // END
 
-            // Ambil jenis difabel madif
+            // START Plottingan
             $jenis_difabel = $this->profile_mhs->getJenisMadif($key['id_profile_mhs']);
-
-            // START CONTOH                        
             $jenis_madif = $this->profile_mhs->getKategoriDifabel($jenis_difabel['id_jenis_difabel']);
             $data_plotting = [
                 'jadwal_madif' => $key,
@@ -662,33 +658,37 @@ class c_damping_ujian extends BaseController
                 'all_id_pendamping' => Array_keys($count_jumlah_damping),
             ];
             $hasil_plotting = $this->damping_ujian->findPendampingAlt1($data_plotting);
+            // END
 
-            $match_pendamping = false;
+            // START Mengurutkan
+            $count = 0;
             foreach (array_keys($count_jumlah_damping) as $key2) {
-                // Mencocokan pembagian jumlah pendamping
-                // Urutan 1 atau 2 karena jadwal cocok
-                foreach ($hasil_plotting as $key3) {
-                    if (($key3['id_profile_pendamping'] == $key2) && ($key3['urutan'] == 1 || $key3['urutan'] == 2)) {
-                        $insert['id_profile_pendamping'] = $key3['id_profile_pendamping'];
-                        $insert['ref_pendampingan'] = $key3['ref_pendampingan'];
-                        $insert['prioritas'] = $key3['prioritas'];
-                        $count_jumlah_damping[$key2] += 1;
-                        $match_pendamping = true;
-                        break;
-                    } else {
-                        $insert['id_profile_pendamping'] = null;
-                        $insert['ref_pendampingan'] = null;
-                        $insert['prioritas'] = null;
+                foreach ($hasil_plotting as $key3 => $value3) {
+                    if ($key2 == $value3['id_profile_pendamping']) {
+                        $hasil_plotting[$key3]['urutan_pembagian_plotting'] = $count++;
                     }
                 }
-                if ($match_pendamping) {
-                    break;
-                }
             }
-            // Memasukkan madif dan pendamping ke pendampingan                   
+            $columns1 = array_column($hasil_plotting, 'urutan');
+            $columns2 = array_column($hasil_plotting, 'urutan_pembagian_plotting');
+            array_multisort($columns1, SORT_ASC, $columns2, SORT_ASC, $hasil_plotting);
+            // END
+
+            // START Input data
+            if ($hasil_plotting[0]['urutan'] == 1 || $hasil_plotting[0]['urutan'] == 2) {
+                $insert['id_profile_pendamping'] = $hasil_plotting[0]['id_profile_pendamping'];
+                $insert['ref_pendampingan'] = $hasil_plotting[0]['ref_pendampingan'];
+                $insert['prioritas'] = $hasil_plotting[0]['prioritas'];
+                $count_jumlah_damping[$hasil_plotting[0]['id_profile_pendamping']] += 1;
+            } else {
+                $insert['id_profile_pendamping'] = null;
+                $insert['ref_pendampingan'] = null;
+                $insert['prioritas'] = null;
+            }
             $damping_ujian_sementara[] = $insert;
-        }       
-        
+            // END
+        }
+
         return $this->viewGenerate($damping_ujian_sementara);
     }
 
