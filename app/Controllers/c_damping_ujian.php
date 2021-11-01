@@ -126,7 +126,7 @@ class c_damping_ujian extends BaseController
         }
 
         $data = [
-            'title' => 'Daftar Pendampingan Ujian',
+            'title' => 'Generate Pedampingan Ujian',
             'data' => $get_all_damping,
             'himpunan_damping_madif' => $himpun_madif,
             'hasil_jadwal_damping' => $transform_jadwal_damping,
@@ -228,39 +228,19 @@ class c_damping_ujian extends BaseController
                     $jadwal_damping[] = $insert;
                 } else {
                     $get_all_pendamping['jenis_difabel'] = $jenis_madif;
-                    $find = $this->plottingSkill($get_all_pendamping);
+
+                    dd($get_all_pendamping);
+                    $find = $this->damping_ujian->plottingSkill($get_all_pendamping);
+
                     unset($find['cek_get_pendamping_skill']);
                     unset($get_all_pendamping['jenis_difabel']);
-                    $pendamping_alt = null;
 
-                    foreach ($find as $fi) {
-                        $fi['kecocokan'] = true;
-                        $biodata_pendamping_alt = $this->biodata->getBiodata($fi['id_profile_pendamping']);
-                        $fi['biodata_pendamping_alt'] = $biodata_pendamping_alt;
-                        $pendamping_alt[] = $fi;
-                    }
+                    $data_pendamping_alt = [
+                        'hasil_find_skill' => $find,
+                        'get_all_pendamping' => $get_all_pendamping,
+                    ];
+                    $pendamping_alt = $this->damping_ujian->findPendampingAlt($data_pendamping_alt);
 
-                    foreach ($get_all_pendamping as $key) {
-                        $cek_pendamping_sama = true;
-                        foreach ($find as $f) {
-                            if ($key['id_profile_mhs'] == $f['id_profile_pendamping']) {
-                                $cek_pendamping_sama = false;
-                                break;
-                            }
-                        }
-
-                        if ($cek_pendamping_sama) {
-                            $biodata_pendamping_alt2 = $this->biodata->getBiodata($key['id_profile_mhs']);
-                            $pendamping_alt2 = [
-                                'id_profile_pendamping' => $key['id_profile_mhs'],
-                                'ref_pendampingan' => null,
-                                'prioritas' => null,
-                                'kecocokan' => false,
-                                'biodata_pendamping_alt' => $biodata_pendamping_alt2,
-                            ];
-                            $pendamping_alt[] = $pendamping_alt2;
-                        }
-                    }
                     $insert['pendamping_alt'] = $pendamping_alt;
                     $jadwal_tidak_damping[] = $insert;
                 }
@@ -284,7 +264,7 @@ class c_damping_ujian extends BaseController
             'user' => $this->dataUser,
         ];
 
-        // dd($data);
+        dd($data);
         return view('admin/damping_ujian/v_all_damping', $data);
     }
 
@@ -578,6 +558,7 @@ class c_damping_ujian extends BaseController
         // $admin = $this->builder2->get();
         $data['user'] = $this->dataUser;
 
+        dd($data);
         return view('admin/damping_ujian/v_generate', $data);
     }
 
@@ -606,9 +587,15 @@ class c_damping_ujian extends BaseController
          * 3)Cek apakah pendamping kosong di tanggal sama di waktu ujian madif
          * 4)Cek apakah pendamping memiliki ref_pendampingan yang sesuai dengan kebutuhan  jenis _madif         
          */
+
+        // Ambil jadwal ujian madif 
+        $all_jadwal_ujian = $this->jadwal_ujian->getAllJadwalUjian();
+        $all_jadwal_madif = $all_jadwal_ujian['jadwal_madif'];
+        // Ambil skills pendamping        
+        $profile_pendamping = $this->profile_mhs->getAllProfile('pendamping');
+
         // Deklarasi variabel damping ujian sementara dan variabel insert data untuk dimasukkan ke var damping ujian sementara
         $damping_ujian_sementara = [];
-
         $insert = [
             'id_jadwal_ujian_madif' => '',
             'id_profile_madif' => '',
@@ -617,13 +604,6 @@ class c_damping_ujian extends BaseController
             'prioritas' => null,
             'jenis_ujian' => $this->request->getVar('jenis_ujian'),
         ];
-
-        // Ambil jadwal ujian madif 
-        $all_jadwal_ujian = $this->jadwal_ujian->getAllJadwalUjian();
-        $all_jadwal_madif = $all_jadwal_ujian['jadwal_madif'];
-
-        // Ambil skills pendamping        
-        $profile_pendamping = $this->profile_mhs->getAllProfile('pendamping');
 
         /**
          * Aturannya, semua pendamping dapat mendampingi secara adil dan rata, namun jadwal kosong dengan prioritas skill pendamping yang cocok diutamakan
@@ -635,7 +615,7 @@ class c_damping_ujian extends BaseController
          * 
          * Note: sorting array asort(), dari value terkecil ke terbesar
          */
-        // Memasukkan seluruh id profile pendamping ke variabel count_jumlah_damping        
+        // Menghimpun id pendamping
         $count_jumlah_damping = [];
         foreach ($profile_pendamping as $key) {
             $count_jumlah_damping[$key['id_profile_mhs']] = 0;
@@ -652,7 +632,7 @@ class c_damping_ujian extends BaseController
          * -Jika menemukan pendamping dengan prioritas pertama (walau tidak sesuai urutan adil pendamping), maka pendamping langsung diplottingkan pada pendampingan tsb. Begitu juga jika didapatkan kecocokan kebutuhan skills pada prioritas kesekian        
          */
 
-        // Mengisi semua jadwal madif dengan pendamping        
+        // Melakukan Plottingan Pendampingan
         foreach ($all_jadwal_madif as $key) {
 
             // Deklarasi variabel temp jadwal_sesuai, untuk menampung id_pendamping yang jadwalnya kosong
@@ -664,107 +644,67 @@ class c_damping_ujian extends BaseController
             // Mengurutkan pendamping dari paling sedikit mendamping hingga paling banyak. Tidak berlaku bagi jumlah damping sama                    
             asort($count_jumlah_damping);
 
+            // Pendamping hanya boleh mendampingi sebanyak 5x dalam seminggu, sesuai dengan aturan PSLD UB
+            foreach ($count_jumlah_damping as $key1 => $value1) {
+                if ($value1 == 5) {
+                    unset($count_jumlah_damping[$key1]);
+                }
+            }
+
             // Ambil jenis difabel madif
             $jenis_difabel = $this->profile_mhs->getJenisMadif($key['id_profile_mhs']);
 
-            // Deklarasi var jika jadwal pendamping ditemukan kosong
-            $cek_dapat_jadwal = false;
+            // START CONTOH                        
+            $jenis_madif = $this->profile_mhs->getKategoriDifabel($jenis_difabel['id_jenis_difabel']);
+            $data_plotting = [
+                'jadwal_madif' => $key,
+                'jenis_difabel' => $jenis_madif,
+                'all_id_pendamping' => Array_keys($count_jumlah_damping),
+            ];
+            d($data_plotting);
+            $pendamping_alt_1 = $this->damping_ujian->findPendampingAlt1($data_plotting);
+            dd($pendamping_alt_1);
 
-            // Cek jadwal pendamping yang sesuai, sudah diurutkan berdasarkan banyaknya jumlah pendampingan dari tersedikit hingga terbanyak
-            foreach ($count_jumlah_damping as $acuan => $isi) {
-
-                // Mengambil jadwal pendamping sesuai dengan id pendamping
-                $urutan_jadwal_pendamping = $this->jadwal_ujian->getJadwalUjian($acuan);
-
-                // Mencari jadwal kosong pada pendamping dengan jumlah mendampingi sedikit
-                foreach ($urutan_jadwal_pendamping as $ujp) {
-                    // Peraturan tanggal sama, di waktu ujian berbeda
-                    if ($key['tanggal_ujian'] == $ujp['tanggal_ujian']) {
-                        // Aturan waktu beririsan                        
-                        $rules = [
-                            // start_waktu_pendamping <= start_madif, end_madif <= end_pendamping, waktu ujian madif beririsan di dalam waktu ujian pendamping
-                            'rule1' => $key['waktu_mulai_ujian'] >= $ujp['waktu_mulai_ujian'] && $key['waktu_selesai_ujian'] <= $ujp['waktu_selesai_ujian'],
-                            // start_pendamping >= start_madif, end_madif >= end_pendamping, waktu ujian pendamping beririsan di dalam waktu ujian madif
-                            'rule2' => $key['waktu_mulai_ujian'] <= $ujp['waktu_mulai_ujian'] && $key['waktu_selesai_ujian'] >= $ujp['waktu_selesai_ujian'],
-                            // start_pendamping <= end_madif <= end_pendamping, waktu selesai ujian madif beririsan diantara waktu ujian pendamping
-                            'rule3' => $key['waktu_selesai_ujian'] >= $ujp['waktu_mulai_ujian'] && $key['waktu_selesai_ujian'] <= $ujp['waktu_selesai_ujian'],
-                            // start_pendamping <= start_madif <= end_pendamping, waktu mulai ujian madif beririsan diantara waktu ujian pendamping
-                            'rule4' => $key['waktu_mulai_ujian'] >= $ujp['waktu_mulai_ujian'] && $key['waktu_mulai_ujian'] <= $ujp['waktu_selesai_ujian'],
-                        ];
-
-                        // Jika beririsan maka pendamping sudah pasti tidak bisa mendampingi
-                        if ($rules['rule1'] || $rules['rule2'] || $rules['rule3'] || $rules['rule4']) {
-                            $insert['id_profile_pendamping'] = null;
-                            // mencari pendamping lain
-                            $cek_dapat_jadwal = false;
-                            break;
-                        }
-
-                        // Jika tidak beririsan maka masukan pendamping
-                        else {
-                            $insert['id_profile_pendamping'] = $ujp['id_profile_mhs'];
-                            $cek_dapat_jadwal = true;
-                        }
-                    }
-
-                    // Peraturan tanggal ujian berbeda                    
-                    elseif ($key['tanggal_ujian'] != $ujp['tanggal_ujian']) {
-                        // Jika sampai eachloop akhir tidak ada jadwal tanggal ujian yang sama, maka masukkan dibawah ini                        
-                        if (end($urutan_jadwal_pendamping) == $ujp) {
-                            $insert['id_profile_pendamping'] = $ujp['id_profile_mhs'];
-                            $cek_dapat_jadwal = true;
-                        }
-                    }
-                }
-
-                // Jika jadwal madif sudah terisi pendamping, maka true. Menghentikan pencarian pendamping
-                if ($cek_dapat_jadwal) {
-                    // break;
-                    $temp_jadwal_sesuai[] = $acuan;
-                }
+            foreach ($pendamping_alt_1 as $kunci2 => $value2) {
+                $pendamping_alt_1[$kunci2]['nickname'] = $value2['biodata_pendamping']['nickname'];
+                unset($pendamping_alt_1[$kunci2]['biodata_pendamping']);
             }
+            // END CONTOH
 
-            $cek_dapat_pendamping_skill = false;
+            // Cek jadwal pendamping yang sesuai, sudah diurutkan berdasarkan banyaknya jumlah pendampingan dari tersedikit hingga terbanyak            
+            $data_plotting_jadwal = [
+                'jadwal_madif' => $key,
+                'count_pendamping' => array_keys($count_jumlah_damping),
+            ];
+            $temp_jadwal_sesuai = $this->damping_ujian->plottingJadwal($data_plotting_jadwal);
+
+            $cek_kecocokan_ref_pendampingan = false;
             // Cek skills pendamping yang sesuai, sudah diurutkan adil            
             if (!empty($temp_jadwal_sesuai)) {
-                $max_jumlah_skill = 0;
-                foreach ($temp_jadwal_sesuai as $t) {
-                    $skills_pendamping = $this->profile_mhs->getSkills($t);
-                    if ($max_jumlah_skill < count($skills_pendamping)) {
-                        $max_jumlah_skill = count($skills_pendamping);
-                    }
+                $data_plotting_skill = ['jenis_difabel' => ['id' => $jenis_difabel['id_jenis_difabel']]];
+                foreach ($temp_jadwal_sesuai as $key2) {
+                    $get_profile_pendamping = $this->biodata->getProfile($key2);
+                    $get_biodata_pendamping = $this->biodata->getBiodata($key2);
+                    $data_plotting_skill[] = array_merge($get_profile_pendamping, $get_biodata_pendamping);
                 }
 
-                // Dicek dulu setiap user temp apakah pada prioritas 1 sesuai dengan kebutuhan jenis madif
-                // kalau tidak, maka dilanjutkan ke user temp berikutnya dengan prioritas 1                
-                for ($i = 0; $i < $max_jumlah_skill; $i++) {
-                    foreach ($temp_jadwal_sesuai as $tjs) {
-                        $skills_pendamping = $this->profile_mhs->getSkills($tjs);
-                        if (isset($skills_pendamping[$i])) {
-                            if ($skills_pendamping[$i]['ref_pendampingan'] == $jenis_difabel['id_jenis_difabel']) {
-                                $insert['id_profile_pendamping'] = $skills_pendamping[$i]['id_profile_pendamping'];
-                                $insert['ref_pendampingan'] = $skills_pendamping[$i]['ref_pendampingan'];
-                                $insert['prioritas'] = $skills_pendamping[$i]['prioritas'];
-                                $cek_dapat_pendamping_skill = true;
-                                break;
-                            }
-                        }
-                    }
-                    if ($cek_dapat_pendamping_skill) {
-                        $count_jumlah_damping[$skills_pendamping[0]['id_profile_pendamping']] += 1;
-                        break;
-                    }
-                }
-
-                // Jika tidak ada skill yang sesuai
-                if (!$cek_dapat_pendamping_skill) {
+                // Memanggil Method Plotting Skill
+                $plotting_skill = $this->damping_ujian->plottingSkill($data_plotting_skill);
+                if (!empty($plotting_skill)) {
+                    unset($plotting_skill['cek_get_pendamping_skill']);
+                    $insert['id_profile_pendamping'] = $plotting_skill[0]['id_profile_pendamping'];
+                    $insert['ref_pendampingan'] = $plotting_skill[0]['ref_pendampingan'];
+                    $insert['prioritas'] = $plotting_skill[0]['prioritas'];
+                    $count_jumlah_damping[$plotting_skill[0]['id_profile_pendamping']] += 1;
+                } else {
+                    // Jika tidak ada pendamping dengan skill yang sesuai
                     $insert['id_profile_pendamping'] = $temp_jadwal_sesuai[0];
+                    $insert['ref_pendampingan'] = null;
+                    $insert['prioritas'] = null;
                     $count_jumlah_damping[$temp_jadwal_sesuai[0]] += 1;
                 }
-            }
-
-            // Jika tidak ada skill yang sesuai
-            if (!$cek_dapat_pendamping_skill) {
+            } else {
+                $insert['id_profile_pendamping'] = null;
                 $insert['ref_pendampingan'] = null;
                 $insert['prioritas'] = null;
             }
@@ -775,42 +715,8 @@ class c_damping_ujian extends BaseController
             $damping_ujian_sementara[] = $insert;
         }
 
+        // dd($damping_ujian_sementara);
         return $this->viewGenerate($damping_ujian_sementara);
-    }
-
-    public function plottingSkill($data)
-    {
-        $jenis_difabel = $data['jenis_difabel'];
-        unset($data['jenis_difabel']);
-        $insert = [];
-        $result = ['cek_get_pendamping_skill' => false,];
-
-        $max_jumlah_skill = 0;
-        foreach ($data as $ap) {
-            $skills_pendamping = $this->profile_mhs->getSkills($ap['id_profile_mhs']);
-            if ($max_jumlah_skill < count($skills_pendamping)) {
-                $max_jumlah_skill = count($skills_pendamping);
-            }
-        }
-
-        // Dicek dulu setiap user temp apakah pada prioritas 1 sesuai dengan kebutuhan jenis madif
-        // kalau tidak, maka dilanjutkan ke user temp berikutnya dengan prioritas 1                
-        for ($i = 0; $i < $max_jumlah_skill; $i++) {
-            foreach ($data as $dt) {
-                $skills_pendamping = $this->profile_mhs->getSkills($dt['id_profile_mhs']);
-                if (isset($skills_pendamping[$i])) {
-                    if ($skills_pendamping[$i]['ref_pendampingan'] == $jenis_difabel['id']) {
-                        $insert['id_profile_pendamping'] = $skills_pendamping[$i]['id_profile_pendamping'];
-                        $insert['ref_pendampingan'] = $skills_pendamping[$i]['ref_pendampingan'];
-                        $insert['prioritas'] = $skills_pendamping[$i]['prioritas'];
-                        $result['cek_get_pendamping_skill'] = true;
-                        $result[] = $insert;
-                        break;
-                    }
-                }
-            }
-        }
-        return $result;
     }
 
     // Simpan Pendamping Alternatif untuk pendampingan tidak ada pendamping
