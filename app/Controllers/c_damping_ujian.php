@@ -635,8 +635,8 @@ class c_damping_ujian extends BaseController
         // Melakukan Plottingan Pendampingan
         foreach ($all_jadwal_madif as $key) {
 
-            // Deklarasi variabel temp jadwal_sesuai, untuk menampung id_pendamping yang jadwalnya kosong
-            $temp_jadwal_sesuai = [];
+            $insert['id_jadwal_ujian_madif'] = $key['id_jadwal_ujian'];
+            $insert['id_profile_madif'] = $key['id_profile_mhs'];
 
             //Jika jumlah damping sama, mengurutkan pendamping dari key terkecil hingga tebesar
             ksort($count_jumlah_damping);
@@ -661,61 +661,34 @@ class c_damping_ujian extends BaseController
                 'jenis_difabel' => $jenis_madif,
                 'all_id_pendamping' => Array_keys($count_jumlah_damping),
             ];
-            d($data_plotting);
-            $pendamping_alt_1 = $this->damping_ujian->findPendampingAlt1($data_plotting);
-            dd($pendamping_alt_1);
+            $hasil_plotting = $this->damping_ujian->findPendampingAlt1($data_plotting);
 
-            foreach ($pendamping_alt_1 as $kunci2 => $value2) {
-                $pendamping_alt_1[$kunci2]['nickname'] = $value2['biodata_pendamping']['nickname'];
-                unset($pendamping_alt_1[$kunci2]['biodata_pendamping']);
-            }
-            // END CONTOH
-
-            // Cek jadwal pendamping yang sesuai, sudah diurutkan berdasarkan banyaknya jumlah pendampingan dari tersedikit hingga terbanyak            
-            $data_plotting_jadwal = [
-                'jadwal_madif' => $key,
-                'count_pendamping' => array_keys($count_jumlah_damping),
-            ];
-            $temp_jadwal_sesuai = $this->damping_ujian->plottingJadwal($data_plotting_jadwal);
-
-            $cek_kecocokan_ref_pendampingan = false;
-            // Cek skills pendamping yang sesuai, sudah diurutkan adil            
-            if (!empty($temp_jadwal_sesuai)) {
-                $data_plotting_skill = ['jenis_difabel' => ['id' => $jenis_difabel['id_jenis_difabel']]];
-                foreach ($temp_jadwal_sesuai as $key2) {
-                    $get_profile_pendamping = $this->biodata->getProfile($key2);
-                    $get_biodata_pendamping = $this->biodata->getBiodata($key2);
-                    $data_plotting_skill[] = array_merge($get_profile_pendamping, $get_biodata_pendamping);
+            $match_pendamping = false;
+            foreach (array_keys($count_jumlah_damping) as $key2) {
+                // Mencocokan pembagian jumlah pendamping
+                // Urutan 1 atau 2 karena jadwal cocok
+                foreach ($hasil_plotting as $key3) {
+                    if (($key3['id_profile_pendamping'] == $key2) && ($key3['urutan'] == 1 || $key3['urutan'] == 2)) {
+                        $insert['id_profile_pendamping'] = $key3['id_profile_pendamping'];
+                        $insert['ref_pendampingan'] = $key3['ref_pendampingan'];
+                        $insert['prioritas'] = $key3['prioritas'];
+                        $count_jumlah_damping[$key2] += 1;
+                        $match_pendamping = true;
+                        break;
+                    } else {
+                        $insert['id_profile_pendamping'] = null;
+                        $insert['ref_pendampingan'] = null;
+                        $insert['prioritas'] = null;
+                    }
                 }
-
-                // Memanggil Method Plotting Skill
-                $plotting_skill = $this->damping_ujian->plottingSkill($data_plotting_skill);
-                if (!empty($plotting_skill)) {
-                    unset($plotting_skill['cek_get_pendamping_skill']);
-                    $insert['id_profile_pendamping'] = $plotting_skill[0]['id_profile_pendamping'];
-                    $insert['ref_pendampingan'] = $plotting_skill[0]['ref_pendampingan'];
-                    $insert['prioritas'] = $plotting_skill[0]['prioritas'];
-                    $count_jumlah_damping[$plotting_skill[0]['id_profile_pendamping']] += 1;
-                } else {
-                    // Jika tidak ada pendamping dengan skill yang sesuai
-                    $insert['id_profile_pendamping'] = $temp_jadwal_sesuai[0];
-                    $insert['ref_pendampingan'] = null;
-                    $insert['prioritas'] = null;
-                    $count_jumlah_damping[$temp_jadwal_sesuai[0]] += 1;
+                if ($match_pendamping) {
+                    break;
                 }
-            } else {
-                $insert['id_profile_pendamping'] = null;
-                $insert['ref_pendampingan'] = null;
-                $insert['prioritas'] = null;
             }
-
-            // Memasukkan madif dan pendamping ke pendampingan
-            $insert['id_jadwal_ujian_madif'] = $key['id_jadwal_ujian'];
-            $insert['id_profile_madif'] = $key['id_profile_mhs'];
+            // Memasukkan madif dan pendamping ke pendampingan                   
             $damping_ujian_sementara[] = $insert;
-        }
-
-        // dd($damping_ujian_sementara);
+        }       
+        
         return $this->viewGenerate($damping_ujian_sementara);
     }
 
