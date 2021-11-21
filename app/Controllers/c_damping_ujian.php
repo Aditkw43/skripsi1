@@ -2,11 +2,13 @@
 
 namespace App\Controllers;
 
+use CodeIgniter\I18n\Time;
 use App\Models\m_biodata;
 use App\Models\m_damping_ujian;
 use App\Models\m_jadwal_ujian;
 use App\Models\m_laporan_damping;
 use App\Models\m_profile_mhs;
+use DateTime;
 
 class c_damping_ujian extends BaseController
 {
@@ -146,9 +148,9 @@ class c_damping_ujian extends BaseController
         $get_jadwal_damping = $this->damping_ujian->getAllDamping($get_profile);
 
         // Transform dari data mentah ke informasi yang diperlukan
-        $transform_jadwal_damping = [];
-        $urutan = [];
-        foreach ($get_jadwal_damping as $acuan => $ajd) {
+        $jadwal_damping = [];
+        $gagal_damping = [];
+        foreach ($get_jadwal_damping as $ajd) {
             $insert = [];
             $jadwal_ujian = $this->jadwal_ujian->getDetailUjian($ajd['id_jadwal_ujian_madif']);
 
@@ -173,16 +175,170 @@ class c_damping_ujian extends BaseController
                 'presensi' => $presensi,
                 'laporan' => $laporan,
             ];
-            $transform_jadwal_damping[$acuan] = $insert;
+
+            // Variabel get_now,date_now, time_now di basecontroller
+            $cek_tanggal_terlewat = $jadwal_ujian['tanggal_ujian'] < $this->date_now;
+            $cek_tanggal_sama = $jadwal_ujian['tanggal_ujian'] == $this->date_now;
+            $cek_waktu_terlewat = $this->time_now > $jadwal_ujian['waktu_selesai_ujian'];
+            $cek_status_damping = $ajd['status_damping'] == null || $ajd['status_damping'] == 'presensi_hadir' || $ajd['status_damping'] == 'konfirmasi_presensi_hadir';
+
+            if ($cek_tanggal_terlewat || ($cek_tanggal_sama && $cek_waktu_terlewat) && $cek_status_damping) {
+                if (!($ajd['status_damping'] == 'gagal_damping')) {
+                    $this->damping_ujian->update($ajd['id_damping'], ['status_damping' => 'gagal_damping']);
+                }
+                $insert['status_damping'] = 'gagal_damping';
+                $gagal_damping[] = $insert;
+            } else {
+                $jadwal_damping[] = $insert;
+            }
         }
+        $all_damping = array_merge($jadwal_damping, $gagal_damping);
 
         $data = [
             'title' => 'Daftar Pendampingan Ujian ',
-            'data' => $get_jadwal_damping,
-            'hasil_jadwal_damping' => $transform_jadwal_damping,
+            'all_damping' => $all_damping,
+            'hasil_jadwal_damping' => $jadwal_damping,
+            'gagal_damping' => $gagal_damping,
             'profile_mhs' => $get_profile,
             'user' => $this->dataUser,
         ];
+        // dd($data);
+
+        return view('mahasiswa/damping/v_damping_ujian', $data);
+    }
+
+    // Menampilkan view jadwal damping, view untuk mahasiswa/detail jadwal mahasiswa
+    public function viewDampingUTS()
+    {
+        $nim = $this->request->getUri()->getSegment(2);
+        $get_id_profile = $this->biodata->getProfileID($nim);
+        $get_profile = $this->biodata->getProfile($get_id_profile);
+        $get_jadwal_damping = $this->damping_ujian->getAllDamping($get_profile);
+
+        // Transform dari data mentah ke informasi yang diperlukan
+        $jadwal_damping = [];
+        $gagal_damping = [];
+        foreach ($get_jadwal_damping as $ajd) {
+            $insert = [];
+            $jadwal_ujian = $this->jadwal_ujian->getDetailUjian($ajd['id_jadwal_ujian_madif']);
+
+            $profile_madif = $this->biodata->getProfile($ajd['id_profile_madif']);
+            $biodata_madif = $this->biodata->getBiodata($ajd['id_profile_madif']);
+            $id_jenis_madif = $this->profile_mhs->getJenisMadif($ajd['id_profile_madif']);
+            $jenis_madif = $this->profile_mhs->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
+            $profile_madif['jenis_madif'] = $jenis_madif['jenis'];
+
+            $profile_pendamping = $this->biodata->getProfile($ajd['id_profile_pendamping']);
+            $biodata_pendamping = $this->biodata->getBiodata($ajd['id_profile_pendamping']);
+
+            $presensi = $this->damping_ujian->getPresensi($ajd['id_damping']);
+            $laporan = $this->damping_ujian->getLaporan($ajd['id_damping']);
+            $insert = [
+                'id_damping' => $ajd['id_damping'],
+                'jadwal_ujian' => $jadwal_ujian,
+                'biodata_madif' => $profile_madif + $biodata_madif,
+                'biodata_pendamping' => (empty($profile_pendamping)) ? null : ($profile_pendamping + $biodata_pendamping),
+                'jenis_ujian' => $ajd['jenis_ujian'],
+                'status_damping' => $ajd['status_damping'],
+                'presensi' => $presensi,
+                'laporan' => $laporan,
+            ];
+
+            // Variabel get_now,date_now, time_now di basecontroller
+            $cek_tanggal_terlewat = $jadwal_ujian['tanggal_ujian'] < $this->date_now;
+            $cek_tanggal_sama = $jadwal_ujian['tanggal_ujian'] == $this->date_now;
+            $cek_waktu_terlewat = $this->time_now > $jadwal_ujian['waktu_selesai_ujian'];
+            $cek_status_damping = $ajd['status_damping'] == null || $ajd['status_damping'] == 'presensi_hadir' || $ajd['status_damping'] == 'konfirmasi_presensi_hadir';
+
+            if ($cek_tanggal_terlewat || ($cek_tanggal_sama && $cek_waktu_terlewat) && $cek_status_damping) {
+                if (!($ajd['status_damping'] == 'gagal_damping')) {
+                    $this->damping_ujian->update($ajd['id_damping'], ['status_damping' => 'gagal_damping']);
+                }
+                $insert['status_damping'] = 'gagal_damping';
+                $gagal_damping[] = $insert;
+            } else {
+                $jadwal_damping[] = $insert;
+            }
+        }
+        $all_damping = array_merge($jadwal_damping, $gagal_damping);
+
+        $data = [
+            'title' => 'Daftar Pendampingan UTS ',
+            'all_damping' => $all_damping,
+            'hasil_jadwal_damping' => $jadwal_damping,
+            'gagal_damping' => $gagal_damping,
+            'profile_mhs' => $get_profile,
+            'user' => $this->dataUser,
+        ];
+        // dd($data);
+
+        return view('mahasiswa/damping/v_damping_ujian', $data);
+    }
+
+    // Menampilkan view jadwal damping, view untuk mahasiswa/detail jadwal mahasiswa
+    public function viewDampingUAS()
+    {
+        $nim = $this->request->getUri()->getSegment(2);
+        $get_id_profile = $this->biodata->getProfileID($nim);
+        $get_profile = $this->biodata->getProfile($get_id_profile);
+        $get_jadwal_damping = $this->damping_ujian->getAllDamping($get_profile);
+
+        // Transform dari data mentah ke informasi yang diperlukan
+        $jadwal_damping = [];
+        $gagal_damping = [];
+        foreach ($get_jadwal_damping as $ajd) {
+            $insert = [];
+            $jadwal_ujian = $this->jadwal_ujian->getDetailUjian($ajd['id_jadwal_ujian_madif']);
+
+            $profile_madif = $this->biodata->getProfile($ajd['id_profile_madif']);
+            $biodata_madif = $this->biodata->getBiodata($ajd['id_profile_madif']);
+            $id_jenis_madif = $this->profile_mhs->getJenisMadif($ajd['id_profile_madif']);
+            $jenis_madif = $this->profile_mhs->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
+            $profile_madif['jenis_madif'] = $jenis_madif['jenis'];
+
+            $profile_pendamping = $this->biodata->getProfile($ajd['id_profile_pendamping']);
+            $biodata_pendamping = $this->biodata->getBiodata($ajd['id_profile_pendamping']);
+
+            $presensi = $this->damping_ujian->getPresensi($ajd['id_damping']);
+            $laporan = $this->damping_ujian->getLaporan($ajd['id_damping']);
+            $insert = [
+                'id_damping' => $ajd['id_damping'],
+                'jadwal_ujian' => $jadwal_ujian,
+                'biodata_madif' => $profile_madif + $biodata_madif,
+                'biodata_pendamping' => (empty($profile_pendamping)) ? null : ($profile_pendamping + $biodata_pendamping),
+                'jenis_ujian' => $ajd['jenis_ujian'],
+                'status_damping' => $ajd['status_damping'],
+                'presensi' => $presensi,
+                'laporan' => $laporan,
+            ];
+
+            // Variabel get_now,date_now, time_now di basecontroller
+            $cek_tanggal_terlewat = $jadwal_ujian['tanggal_ujian'] < $this->date_now;
+            $cek_tanggal_sama = $jadwal_ujian['tanggal_ujian'] == $this->date_now;
+            $cek_waktu_terlewat = $this->time_now > $jadwal_ujian['waktu_selesai_ujian'];
+            $cek_status_damping = $ajd['status_damping'] == null || $ajd['status_damping'] == 'presensi_hadir' || $ajd['status_damping'] == 'konfirmasi_presensi_hadir';
+
+            if ($cek_tanggal_terlewat || ($cek_tanggal_sama && $cek_waktu_terlewat) && $cek_status_damping) {
+                if (!($ajd['status_damping'] == 'gagal_damping')) {
+                    $this->damping_ujian->update($ajd['id_damping'], ['status_damping' => 'gagal_damping']);
+                }
+                $insert['status_damping'] = 'gagal_damping';
+                $gagal_damping[] = $insert;
+            } else {
+                $jadwal_damping[] = $insert;
+            }
+        }
+        $all_damping = array_merge($jadwal_damping, $gagal_damping);
+
+        $data = [
+            'title' => 'Daftar Pendampingan UAS ',
+            'all_damping' => $all_damping,
+            'hasil_jadwal_damping' => $jadwal_damping,
+            'gagal_damping' => $gagal_damping,
+            'profile_mhs' => $get_profile,
+            'user' => $this->dataUser,
+        ];
+        // dd($data);
 
         return view('mahasiswa/damping/v_damping_ujian', $data);
     }
@@ -227,19 +383,16 @@ class c_damping_ujian extends BaseController
                 if (isset($ajd['id_profile_pendamping'])) {
                     $jadwal_damping[] = $insert;
                 } else {
-                    $get_all_pendamping['jenis_difabel'] = $jenis_madif;
-
-                    dd($get_all_pendamping);
-                    $find = $this->damping_ujian->plottingSkill($get_all_pendamping);
-
-                    unset($find['cek_get_pendamping_skill']);
-                    unset($get_all_pendamping['jenis_difabel']);
-
-                    $data_pendamping_alt = [
-                        'hasil_find_skill' => $find,
-                        'get_all_pendamping' => $get_all_pendamping,
+                    $all_id_profile_pendamping = [];
+                    foreach ($get_all_pendamping as $gap) {
+                        $all_id_profile_pendamping[] = $gap['id_profile_mhs'];
+                    }
+                    $data_plotting = [
+                        'jadwal_madif' => $jadwal_ujian,
+                        'jenis_difabel' => $jenis_madif,
+                        'all_id_pendamping' => $all_id_profile_pendamping,
                     ];
-                    $pendamping_alt = $this->damping_ujian->findPendampingAlt($data_pendamping_alt);
+                    $pendamping_alt = $this->damping_ujian->findPendampingAlt1($data_plotting);
 
                     $insert['pendamping_alt'] = $pendamping_alt;
                     $jadwal_tidak_damping[] = $insert;
@@ -264,8 +417,162 @@ class c_damping_ujian extends BaseController
             'user' => $this->dataUser,
         ];
 
-        dd($data);
+        // dd($data);
         return view('admin/damping_ujian/v_all_damping', $data);
+    }
+    public function viewAllDampingUTS()
+    {
+        $get_jadwal_damping = $this->damping_ujian->getAllDamping();
+        $get_all_pendamping = $this->profile_mhs->getAllProfilePendamping();
+
+        // Transform dari data mentah ke informasi yang diperlukan
+        $jadwal_damping = [];
+        $jadwal_tidak_damping = [];
+        $pendamping_alt = [];
+
+        foreach ($get_jadwal_damping as $ajd) {
+            if (!($ajd['status_damping'] == 'selesai')) {
+                $insert = [];
+                $jadwal_ujian = $this->jadwal_ujian->getDetailUjian($ajd['id_jadwal_ujian_madif']);
+
+                $profile_madif = $this->biodata->getProfile($ajd['id_profile_madif']);
+                $biodata_madif = $this->biodata->getBiodata($ajd['id_profile_madif']);
+                $id_jenis_madif = $this->profile_mhs->getJenisMadif($ajd['id_profile_madif']);
+                $jenis_madif = $this->profile_mhs->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
+                $profile_madif['jenis_madif'] = $jenis_madif['jenis'];
+
+                $profile_pendamping = $this->biodata->getProfile($ajd['id_profile_pendamping']);
+                $biodata_pendamping = $this->biodata->getBiodata($ajd['id_profile_pendamping']);
+
+                $presensi = $this->damping_ujian->getPresensi($ajd['id_damping']);
+                $laporan = $this->damping_ujian->getLaporan($ajd['id_damping']);
+                $insert = [
+                    'id_damping' => $ajd['id_damping'],
+                    'jadwal_ujian' => $jadwal_ujian,
+                    'biodata_madif' => $profile_madif + $biodata_madif,
+                    'biodata_pendamping' => (empty($profile_pendamping)) ? null : ($profile_pendamping + $biodata_pendamping),
+                    'jenis_ujian' => $ajd['jenis_ujian'],
+                    'status_damping' => $ajd['status_damping'],
+                    'presensi' => $presensi,
+                    'laporan' => $laporan,
+                ];
+
+                if (isset($ajd['id_profile_pendamping'])) {
+                    $jadwal_damping[] = $insert;
+                } else {
+                    $all_id_profile_pendamping = [];
+                    foreach ($get_all_pendamping as $gap) {
+                        $all_id_profile_pendamping[] = $gap['id_profile_mhs'];
+                    }
+                    $data_plotting = [
+                        'jadwal_madif' => $jadwal_ujian,
+                        'jenis_difabel' => $jenis_madif,
+                        'all_id_pendamping' => $all_id_profile_pendamping,
+                    ];
+                    $pendamping_alt = $this->damping_ujian->findPendampingAlt1($data_plotting);
+
+                    $insert['pendamping_alt'] = $pendamping_alt;
+                    $jadwal_tidak_damping[] = $insert;
+                }
+            }
+        }
+
+        foreach ($get_jadwal_damping as $key1 => $value1) {
+            if ($value1['status_damping'] == 'selesai') {
+                unset($get_jadwal_damping[$key1]);
+                continue;
+            }
+        }
+
+        $get_jadwal_damping = array_merge($jadwal_damping, $jadwal_tidak_damping);
+
+        $data = [
+            'title' => 'Seluruh Pendampingan UTS ',
+            'all_jadwal_damping' => $get_jadwal_damping,
+            'jadwal_damping' => $jadwal_damping,
+            'jadwal_tidak_damping' => $jadwal_tidak_damping,
+            'user' => $this->dataUser,
+        ];
+
+        // dd($data);
+        return view('admin/damping_ujian/v_all_damping_uts', $data);
+    }
+    public function viewAllDampingUAS()
+    {
+        $get_jadwal_damping = $this->damping_ujian->getAllDamping();
+        $get_all_pendamping = $this->profile_mhs->getAllProfilePendamping();
+
+        // Transform dari data mentah ke informasi yang diperlukan
+        $jadwal_damping = [];
+        $jadwal_tidak_damping = [];
+        $pendamping_alt = [];
+
+        foreach ($get_jadwal_damping as $ajd) {
+            if (!($ajd['status_damping'] == 'selesai')) {
+                $insert = [];
+                $jadwal_ujian = $this->jadwal_ujian->getDetailUjian($ajd['id_jadwal_ujian_madif']);
+
+                $profile_madif = $this->biodata->getProfile($ajd['id_profile_madif']);
+                $biodata_madif = $this->biodata->getBiodata($ajd['id_profile_madif']);
+                $id_jenis_madif = $this->profile_mhs->getJenisMadif($ajd['id_profile_madif']);
+                $jenis_madif = $this->profile_mhs->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
+                $profile_madif['jenis_madif'] = $jenis_madif['jenis'];
+
+                $profile_pendamping = $this->biodata->getProfile($ajd['id_profile_pendamping']);
+                $biodata_pendamping = $this->biodata->getBiodata($ajd['id_profile_pendamping']);
+
+                $presensi = $this->damping_ujian->getPresensi($ajd['id_damping']);
+                $laporan = $this->damping_ujian->getLaporan($ajd['id_damping']);
+                $insert = [
+                    'id_damping' => $ajd['id_damping'],
+                    'jadwal_ujian' => $jadwal_ujian,
+                    'biodata_madif' => $profile_madif + $biodata_madif,
+                    'biodata_pendamping' => (empty($profile_pendamping)) ? null : ($profile_pendamping + $biodata_pendamping),
+                    'jenis_ujian' => $ajd['jenis_ujian'],
+                    'status_damping' => $ajd['status_damping'],
+                    'presensi' => $presensi,
+                    'laporan' => $laporan,
+                ];
+
+                if (isset($ajd['id_profile_pendamping'])) {
+                    $jadwal_damping[] = $insert;
+                } else {
+                    $all_id_profile_pendamping = [];
+                    foreach ($get_all_pendamping as $gap) {
+                        $all_id_profile_pendamping[] = $gap['id_profile_mhs'];
+                    }
+                    $data_plotting = [
+                        'jadwal_madif' => $jadwal_ujian,
+                        'jenis_difabel' => $jenis_madif,
+                        'all_id_pendamping' => $all_id_profile_pendamping,
+                    ];
+                    $pendamping_alt = $this->damping_ujian->findPendampingAlt1($data_plotting);
+
+                    $insert['pendamping_alt'] = $pendamping_alt;
+                    $jadwal_tidak_damping[] = $insert;
+                }
+            }
+        }
+
+        foreach ($get_jadwal_damping as $key1 => $value1) {
+            if ($value1['status_damping'] == 'selesai') {
+                unset($get_jadwal_damping[$key1]);
+                continue;
+            }
+        }
+
+        $get_jadwal_damping = array_merge($jadwal_damping, $jadwal_tidak_damping);
+
+        $data = [
+            'title' => 'Seluruh Pendampingan UAS ',
+            'all_jadwal_damping' => $get_jadwal_damping,
+            'jadwal_damping' => $jadwal_damping,
+            'jadwal_tidak_damping' => $jadwal_tidak_damping,
+            'user' => $this->dataUser,
+        ];
+
+        // dd($data);
+        return view('admin/damping_ujian/v_all_damping_uas', $data);
     }
 
     // Menampilkan view jadwal damping, view untuk mahasiswa/detail jadwal mahasiswa
@@ -348,6 +655,166 @@ class c_damping_ujian extends BaseController
 
         return view('admin/laporan_damping/v_all_laporan_damping', $data);
     }
+    // Menampilkan view jadwal damping, view untuk mahasiswa/detail jadwal mahasiswa
+    public function viewAllLaporanUTS()
+    {
+        $get_all_laporan = $this->laporan->getAllLaporan();
+        $laporan_not_approval = [];
+        $laporan_diterima = [];
+        $laporan_ditolak = [];
+        $hasil_laporan = [];
+
+        foreach ($get_all_laporan as $key => $value) {
+            $get_jadwal_damping = $this->damping_ujian->getDetailDamping($value['id_damping']);
+            $get_jadwal_ujian = $this->jadwal_ujian->getDetailUjian($get_jadwal_damping['id_jadwal_ujian_madif']);
+
+            // Madif
+            $profile_madif = $this->biodata->getProfile($get_jadwal_damping['id_profile_madif']);
+            $biodata_madif = $this->biodata->getBiodata($get_jadwal_damping['id_profile_madif']);
+            $id_jenis_madif = $this->profile_mhs->getJenisMadif($get_jadwal_damping['id_profile_madif']);
+            $jenis_madif = $this->profile_mhs->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
+            $profile_madif['jenis_madif'] = $jenis_madif['jenis'];
+
+            // Pendamping
+            $profile_pendamping = $this->biodata->getProfile($get_jadwal_damping['id_profile_pendamping']);
+            $biodata_pendamping = $this->biodata->getBiodata($get_jadwal_damping['id_profile_pendamping']);
+
+            // Presensi
+            $presensi = $this->damping_ujian->getPresensi($value['id_damping']);
+
+            $insert_jadwal_ujian = [
+                'mata_kuliah' => $get_jadwal_ujian['mata_kuliah'],
+                'tanggal_ujian' => $get_jadwal_ujian['tanggal_ujian'],
+                'waktu_mulai_ujian' => $get_jadwal_ujian['waktu_mulai_ujian'],
+                'waktu_selesai_ujian' => $get_jadwal_ujian['waktu_selesai_ujian'],
+                'ruangan' => $get_jadwal_ujian['ruangan'],
+                'keterangan' => $get_jadwal_ujian['keterangan'],
+            ];
+
+            $insert_biodata = [
+                'biodata_madif' => $biodata_madif + $profile_madif,
+                'biodata_pendamping' => $biodata_pendamping + $profile_pendamping,
+            ];
+
+            $insert_laporan_damping = [
+                'id_laporan_damping' => $value['id_laporan_damping'],
+                'madif_rating' => $value['madif_rating'],
+                'pendamping_rating' => $value['pendamping_rating'],
+                'madif_review' => $value['madif_review'],
+                'pendamping_review' => $value['pendamping_review'],
+                'approval' => $value['approval'],
+                'presensi' => $presensi,
+            ];
+
+            $hasil_laporan[$key] = [
+                'jadwal_ujian' => $insert_jadwal_ujian,
+                'biodata' => $insert_biodata,
+                'laporan' => $insert_laporan_damping,
+            ];
+        }
+
+        foreach ($hasil_laporan as $key1) {
+            if ($key1['laporan']['approval'] === '1') {
+                $laporan_diterima[] = $key1;
+            } elseif ($key1['laporan']['approval'] === '0') {
+                $laporan_ditolak[] = $key1;
+            } else {
+                $laporan_not_approval[] = $key1;
+            }
+        }
+
+        $data = [
+            'title' => 'Seluruh Laporan Pendampingan UTS',
+            'hasil_laporan' => $hasil_laporan,
+            'laporan_diterima' => $laporan_diterima,
+            'laporan_ditolak' => $laporan_ditolak,
+            'laporan_diverifikasi' => $laporan_not_approval,
+            'user' => $this->dataUser,
+        ];
+        // dd($data);
+
+        return view('admin/laporan_damping/v_all_laporan_damping_uts', $data);
+    }
+    // Menampilkan view jadwal damping, view untuk mahasiswa/detail jadwal mahasiswa
+    public function viewAllLaporanUAS()
+    {
+        $get_all_laporan = $this->laporan->getAllLaporan();
+        $laporan_not_approval = [];
+        $laporan_diterima = [];
+        $laporan_ditolak = [];
+        $hasil_laporan = [];
+
+        foreach ($get_all_laporan as $key => $value) {
+            $get_jadwal_damping = $this->damping_ujian->getDetailDamping($value['id_damping']);
+            $get_jadwal_ujian = $this->jadwal_ujian->getDetailUjian($get_jadwal_damping['id_jadwal_ujian_madif']);
+
+            // Madif
+            $profile_madif = $this->biodata->getProfile($get_jadwal_damping['id_profile_madif']);
+            $biodata_madif = $this->biodata->getBiodata($get_jadwal_damping['id_profile_madif']);
+            $id_jenis_madif = $this->profile_mhs->getJenisMadif($get_jadwal_damping['id_profile_madif']);
+            $jenis_madif = $this->profile_mhs->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
+            $profile_madif['jenis_madif'] = $jenis_madif['jenis'];
+
+            // Pendamping
+            $profile_pendamping = $this->biodata->getProfile($get_jadwal_damping['id_profile_pendamping']);
+            $biodata_pendamping = $this->biodata->getBiodata($get_jadwal_damping['id_profile_pendamping']);
+
+            // Presensi
+            $presensi = $this->damping_ujian->getPresensi($value['id_damping']);
+
+            $insert_jadwal_ujian = [
+                'mata_kuliah' => $get_jadwal_ujian['mata_kuliah'],
+                'tanggal_ujian' => $get_jadwal_ujian['tanggal_ujian'],
+                'waktu_mulai_ujian' => $get_jadwal_ujian['waktu_mulai_ujian'],
+                'waktu_selesai_ujian' => $get_jadwal_ujian['waktu_selesai_ujian'],
+                'ruangan' => $get_jadwal_ujian['ruangan'],
+                'keterangan' => $get_jadwal_ujian['keterangan'],
+            ];
+
+            $insert_biodata = [
+                'biodata_madif' => $biodata_madif + $profile_madif,
+                'biodata_pendamping' => $biodata_pendamping + $profile_pendamping,
+            ];
+
+            $insert_laporan_damping = [
+                'id_laporan_damping' => $value['id_laporan_damping'],
+                'madif_rating' => $value['madif_rating'],
+                'pendamping_rating' => $value['pendamping_rating'],
+                'madif_review' => $value['madif_review'],
+                'pendamping_review' => $value['pendamping_review'],
+                'approval' => $value['approval'],
+                'presensi' => $presensi,
+            ];
+
+            $hasil_laporan[$key] = [
+                'jadwal_ujian' => $insert_jadwal_ujian,
+                'biodata' => $insert_biodata,
+                'laporan' => $insert_laporan_damping,
+            ];
+        }
+
+        foreach ($hasil_laporan as $key1) {
+            if ($key1['laporan']['approval'] === '1') {
+                $laporan_diterima[] = $key1;
+            } elseif ($key1['laporan']['approval'] === '0') {
+                $laporan_ditolak[] = $key1;
+            } else {
+                $laporan_not_approval[] = $key1;
+            }
+        }
+
+        $data = [
+            'title' => 'Seluruh Laporan Pendampingan UAS',
+            'hasil_laporan' => $hasil_laporan,
+            'laporan_diterima' => $laporan_diterima,
+            'laporan_ditolak' => $laporan_ditolak,
+            'laporan_diverifikasi' => $laporan_not_approval,
+            'user' => $this->dataUser,
+        ];
+        // dd($data);
+
+        return view('admin/laporan_damping/v_all_laporan_damping_uas', $data);
+    }
 
     // Menampilkan view jadwal damping, view untuk mahasiswa/detail jadwal mahasiswa
     public function viewTidakDamping()
@@ -358,33 +825,32 @@ class c_damping_ujian extends BaseController
         $get_jadwal_damping = $this->damping_ujian->getAllDamping($get_profile);
 
         // Transform dari data mentah ke informasi yang diperlukan
-        $transform_jadwal_damping = [];
+        $transform_jadwal_damping = null;
+        // d($get_jadwal_damping);
         foreach ($get_jadwal_damping as $acuan => $ajd) {
-            $insert = [];
-            $jadwal_ujian = $this->jadwal_ujian->getDetailUjian($ajd['id_jadwal_ujian_madif']);
+            if (empty($ajd['id_profile_pendamping'])) {
+                $insert = [];
+                $jadwal_ujian = $this->jadwal_ujian->getDetailUjian($ajd['id_jadwal_ujian_madif']);
 
-            $profile_madif = $this->biodata->getProfile($ajd['id_profile_madif']);
-            $biodata_madif = $this->biodata->getBiodata($ajd['id_profile_madif']);
-            $id_jenis_madif = $this->profile_mhs->getJenisMadif($ajd['id_profile_madif']);
-            $jenis_madif = $this->profile_mhs->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
-            $profile_madif['jenis_madif'] = $jenis_madif['jenis'];
+                $profile_madif = $this->biodata->getProfile($ajd['id_profile_madif']);
+                $biodata_madif = $this->biodata->getBiodata($ajd['id_profile_madif']);
+                $id_jenis_madif = $this->profile_mhs->getJenisMadif($ajd['id_profile_madif']);
+                $jenis_madif = $this->profile_mhs->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
+                $profile_madif['jenis_madif'] = $jenis_madif['jenis'];
 
-            $profile_pendamping = $this->biodata->getProfile($ajd['id_profile_pendamping']);
-            $biodata_pendamping = $this->biodata->getBiodata($ajd['id_profile_pendamping']);
-
-            $presensi = $this->damping_ujian->getPresensi($ajd['id_damping']);
-            $laporan = $this->damping_ujian->getLaporan($ajd['id_damping']);
-            $insert = [
-                'id_damping' => $ajd['id_damping'],
-                'jadwal_ujian' => $jadwal_ujian,
-                'biodata_madif' => $profile_madif + $biodata_madif,
-                'biodata_pendamping' => (empty($profile_pendamping)) ? null : ($profile_pendamping + $biodata_pendamping),
-                'jenis_ujian' => $ajd['jenis_ujian'],
-                'status_damping' => $ajd['status_damping'],
-                'presensi' => $presensi,
-                'laporan' => $laporan,
-            ];
-            $transform_jadwal_damping[$acuan] = $insert;
+                $presensi = $this->damping_ujian->getPresensi($ajd['id_damping']);
+                $laporan = $this->damping_ujian->getLaporan($ajd['id_damping']);
+                $insert = [
+                    'id_damping' => $ajd['id_damping'],
+                    'jadwal_ujian' => $jadwal_ujian,
+                    'biodata_madif' => $profile_madif + $biodata_madif,
+                    'jenis_ujian' => $ajd['jenis_ujian'],
+                    'status_damping' => $ajd['status_damping'],
+                    'presensi' => $presensi,
+                    'laporan' => $laporan,
+                ];
+                $transform_jadwal_damping[$acuan] = $insert;
+            }
         }
 
         $data = [
@@ -473,6 +939,156 @@ class c_damping_ujian extends BaseController
             ];
         }
         return view('mahasiswa/damping/v_laporan', $data);
+    }
+    public function viewLaporanUTS()
+    {
+        $nim = $this->request->getUri()->getSegment(2);
+        $get_id_profile = $this->biodata->getProfileID($nim);
+        $get_profile = $this->biodata->getProfile($get_id_profile);
+
+        $get_laporan = $this->laporan->getAllLaporan($get_profile);
+        $hasil_laporan = [];
+
+        // Tanggal ujian(jadwal_ujian), mata kuliah(jadwal_ujian), nama madif/nama pendamping(biodata), status_approval(laporan_damping), detail_laporan(laporan_damping dan presensi)
+        // Detail_laporan: rating madif/pendamping, review madif/pendamping, waktu absensi(Presensi) (Waktu hadir, pulang, tepat waktu)           
+        foreach ($get_laporan as $key => $value) {
+            $get_jadwal_damping = $this->damping_ujian->getDetailDamping($value['id_damping']);
+            $get_jadwal_ujian = $this->jadwal_ujian->getDetailUjian($get_jadwal_damping['id_jadwal_ujian_madif']);
+
+            $profile_madif = $this->biodata->getProfile($get_jadwal_damping['id_profile_madif']);
+            $biodata_madif = $this->biodata->getBiodata($get_jadwal_damping['id_profile_madif']);
+            $id_jenis_madif = $this->profile_mhs->getJenisMadif($get_jadwal_damping['id_profile_madif']);
+            $jenis_madif = $this->profile_mhs->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
+            $profile_madif['jenis_madif'] = $jenis_madif['jenis'];
+
+            $profile_pendamping = $this->biodata->getProfile($get_jadwal_damping['id_profile_pendamping']);
+            $biodata_pendamping = $this->biodata->getBiodata($get_jadwal_damping['id_profile_pendamping']);
+
+            $presensi = $this->damping_ujian->getPresensi($value['id_damping']);
+
+            $insert_jadwal_ujian = [
+                'mata_kuliah' => $get_jadwal_ujian['mata_kuliah'],
+                'tanggal_ujian' => $get_jadwal_ujian['tanggal_ujian'],
+                'waktu_mulai_ujian' => $get_jadwal_ujian['waktu_mulai_ujian'],
+                'waktu_selesai_ujian' => $get_jadwal_ujian['waktu_selesai_ujian'],
+                'ruangan' => $get_jadwal_ujian['ruangan'],
+                'keterangan' => $get_jadwal_ujian['keterangan'],
+            ];
+
+            $insert_biodata = [
+                'biodata_madif' => $biodata_madif + $profile_madif,
+                'biodata_pendamping' => $biodata_pendamping + $profile_pendamping,
+            ];
+
+            $insert_laporan_damping = [
+                'id_laporan_damping' => $value['id_laporan_damping'],
+                'madif_rating' => $value['madif_rating'],
+                'pendamping_rating' => $value['pendamping_rating'],
+                'madif_review' => $value['madif_review'],
+                'pendamping_review' => $value['pendamping_review'],
+                'approval' => $value['approval'],
+                'presensi' => $presensi,
+            ];
+
+            $hasil_laporan[$key] = [
+                'jadwal_ujian' => $insert_jadwal_ujian,
+                'biodata' => $insert_biodata,
+                'laporan' => $insert_laporan_damping,
+            ];
+        }
+
+        if (isset($get_jadwal_damping)) {
+            $data = [
+                'title' => 'Laporan Pendampingan UTS',
+                'hasil_laporan' => $hasil_laporan,
+                'profile_mhs' => $get_profile,
+                'user' => $this->dataUser,
+            ];
+        } else {
+            $data = [
+                'title' => 'Laporan Pendampingan UTS',
+                'data' => null,
+                'hasil_laporan' => null,
+                'profile_mhs' => $get_profile,
+                'user' => $this->dataUser,
+            ];
+        }
+        return view('mahasiswa/damping/v_laporan_uts', $data);
+    }
+    public function viewLaporanUAS()
+    {
+        $nim = $this->request->getUri()->getSegment(2);
+        $get_id_profile = $this->biodata->getProfileID($nim);
+        $get_profile = $this->biodata->getProfile($get_id_profile);
+
+        $get_laporan = $this->laporan->getAllLaporan($get_profile);
+        $hasil_laporan = [];
+
+        // Tanggal ujian(jadwal_ujian), mata kuliah(jadwal_ujian), nama madif/nama pendamping(biodata), status_approval(laporan_damping), detail_laporan(laporan_damping dan presensi)
+        // Detail_laporan: rating madif/pendamping, review madif/pendamping, waktu absensi(Presensi) (Waktu hadir, pulang, tepat waktu)           
+        foreach ($get_laporan as $key => $value) {
+            $get_jadwal_damping = $this->damping_ujian->getDetailDamping($value['id_damping']);
+            $get_jadwal_ujian = $this->jadwal_ujian->getDetailUjian($get_jadwal_damping['id_jadwal_ujian_madif']);
+
+            $profile_madif = $this->biodata->getProfile($get_jadwal_damping['id_profile_madif']);
+            $biodata_madif = $this->biodata->getBiodata($get_jadwal_damping['id_profile_madif']);
+            $id_jenis_madif = $this->profile_mhs->getJenisMadif($get_jadwal_damping['id_profile_madif']);
+            $jenis_madif = $this->profile_mhs->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
+            $profile_madif['jenis_madif'] = $jenis_madif['jenis'];
+
+            $profile_pendamping = $this->biodata->getProfile($get_jadwal_damping['id_profile_pendamping']);
+            $biodata_pendamping = $this->biodata->getBiodata($get_jadwal_damping['id_profile_pendamping']);
+
+            $presensi = $this->damping_ujian->getPresensi($value['id_damping']);
+
+            $insert_jadwal_ujian = [
+                'mata_kuliah' => $get_jadwal_ujian['mata_kuliah'],
+                'tanggal_ujian' => $get_jadwal_ujian['tanggal_ujian'],
+                'waktu_mulai_ujian' => $get_jadwal_ujian['waktu_mulai_ujian'],
+                'waktu_selesai_ujian' => $get_jadwal_ujian['waktu_selesai_ujian'],
+                'ruangan' => $get_jadwal_ujian['ruangan'],
+                'keterangan' => $get_jadwal_ujian['keterangan'],
+            ];
+
+            $insert_biodata = [
+                'biodata_madif' => $biodata_madif + $profile_madif,
+                'biodata_pendamping' => $biodata_pendamping + $profile_pendamping,
+            ];
+
+            $insert_laporan_damping = [
+                'id_laporan_damping' => $value['id_laporan_damping'],
+                'madif_rating' => $value['madif_rating'],
+                'pendamping_rating' => $value['pendamping_rating'],
+                'madif_review' => $value['madif_review'],
+                'pendamping_review' => $value['pendamping_review'],
+                'approval' => $value['approval'],
+                'presensi' => $presensi,
+            ];
+
+            $hasil_laporan[$key] = [
+                'jadwal_ujian' => $insert_jadwal_ujian,
+                'biodata' => $insert_biodata,
+                'laporan' => $insert_laporan_damping,
+            ];
+        }
+
+        if (isset($get_jadwal_damping)) {
+            $data = [
+                'title' => 'Laporan Pendampingan UAS',
+                'hasil_laporan' => $hasil_laporan,
+                'profile_mhs' => $get_profile,
+                'user' => $this->dataUser,
+            ];
+        } else {
+            $data = [
+                'title' => 'Laporan Pendampingan UAS',
+                'data' => null,
+                'hasil_laporan' => null,
+                'profile_mhs' => $get_profile,
+                'user' => $this->dataUser,
+            ];
+        }
+        return view('mahasiswa/damping/v_laporan_uas', $data);
     }
 
     // Menampilkan jadwal sementara hasil generate    
@@ -809,6 +1425,18 @@ class c_damping_ujian extends BaseController
         } elseif ($status == 'tolak') {
             $this->laporan->update($get_id_laporan_damping, ['approval' => 0]);
         }
+        return redirect()->back();
+    }
+
+    public function delDamping()
+    {
+        $get_id_damping = $this->request->getUri()->getSegment(3);
+        $get_damping = $this->damping_ujian->getDetailDamping($get_id_damping);
+        $get_jadwal = $this->jadwal_ujian->getDetailUjian($get_damping['id_jadwal_ujian_madif']);
+
+        session()->setFlashdata('berhasil_dihapus', 'Pendampingan tanggal ' . date('d M Y', strtotime($get_jadwal['tanggal_ujian'])) . ' dengan mata kuliah ' . $get_jadwal['mata_kuliah'] . ' berhasil dihapus');
+        $this->damping_ujian->delete($get_id_damping);
+
         return redirect()->back();
     }
 }

@@ -20,7 +20,7 @@
                                     <thead>
 
                                         <tr>
-                                            <th scope="col">Konfirmasi</th>
+                                            <th scope="col">No</th>
                                             <th scope="col">Tanggal Ujian</th>
                                             <th scope="col">Mata Kuliah</th>
                                             <th scope="col">Status</th>
@@ -29,43 +29,47 @@
 
                                     </thead>
                                     <tbody class="table-light">
-
-                                        <?php if (!empty($data)) : ?>
+                                        <?php if (isset($hasil_jadwal_damping)) : ?>
                                             <?php $i = 1 ?>
                                             <?php foreach ($hasil_jadwal_damping as $hjd) : ?>
-                                                <?php if (empty($hjd['biodata_pendamping'])) : ?>
+                                                <tr class="align-middle" style="color:<?= (empty($hjd['biodata_pendamping'])) ? 'grey' : '' ?>">
 
-                                                    <tr class="align-middle" style="color:<?= (empty($hjd['biodata_pendamping'])) ? 'grey' : '' ?>">
+                                                    <!-- Id Pendampingan -->
+                                                    <input type="hidden" name="id_damping" value="<?= $hjd['id_damping']; ?>">
 
-                                                        <!-- Id Pendampingan -->
-                                                        <input type="hidden" name="id_damping" value="<?= $hjd['id_damping']; ?>">
+                                                    <!-- Nomor -->
+                                                    <th scope="row"><?= $i; ?></th>
 
-                                                        <!-- Nomor -->
-                                                        <th scope="row"><?= $i; ?></th>
+                                                    <!-- Tanggal Ujian -->
+                                                    <td><?= date('d, M Y', strtotime($hjd['jadwal_ujian']['tanggal_ujian'])); ?></td>
 
-                                                        <!-- Tanggal Ujian -->
-                                                        <td><?= date('d, M Y', strtotime($hjd['jadwal_ujian']['tanggal_ujian'])); ?></td>
+                                                    <!-- Mata Kuliah -->
+                                                    <td><?= $hjd['jadwal_ujian']['mata_kuliah']; ?></td>
 
-                                                        <!-- Mata Kuliah -->
-                                                        <td><?= $hjd['jadwal_ujian']['mata_kuliah']; ?></td>
-
-                                                        <!-- Status -->
-                                                        <td style="color: red;">
-                                                            Tidak Ada Pendamping
-                                                        </td>
+                                                    <!-- Status -->
+                                                    <td style="color: red;">
+                                                        Tidak Ada Pendamping
+                                                    </td>
 
 
-                                                        <!-- Aksi -->
-                                                        <td>
-                                                            <button type="button" class="btn btn-warning btn-sm editJadwal my-1" data-bs-toggle="modal" data-bs-target="#jadwalDamping<?= $hjd['id_damping']; ?>" ?>
-                                                                Detail
-                                                            </button>
-                                                        </td>
+                                                    <!-- Aksi -->
+                                                    <td>
+                                                        <button type="button" class="btn btn-warning btn-sm editJadwal my-1" data-bs-toggle="modal" data-bs-target="#jadwalDamping<?= $hjd['id_damping']; ?>" ?>
+                                                            Detail
+                                                        </button>
+                                                    </td>
 
-                                                    </tr>
-                                                    <?php $i++; ?>
-                                                <?php endif; ?>
+                                                </tr>
+                                                <?php $i++; ?>
                                             <?php endforeach; ?>
+                                        <?php else : ?>
+                                            <tr>
+                                                <td></td>
+                                                <td></td>
+                                                <td></td>
+                                                <td></td>
+                                                <td></td>
+                                            </tr>
                                         <?php endif; ?>
                                     </tbody>
                                 </table>
@@ -78,7 +82,7 @@
     </div>
 </div>
 
-<?php if (!empty($data)) : ?>
+<?php if (!empty($hasil_jadwal_damping)) : ?>
 
     <?php foreach ($hasil_jadwal_damping as $modalhjd) : ?>
         <!-- Modal Jadwal Ujian -->

@@ -173,25 +173,21 @@
                                                         <td></td>
                                                         <td></td>
                                                         <td></td>
+                                                        <td></td>
                                                     </tr>
                                                 <?php endfor; ?>
                                             <?php endif; ?>
-
                                         </tbody>
-
                                     </table>
                                 </div>
                             </div>
                         </div>
-
                     </div>
-
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 
 <!-- Modal Izin Tidak Damping -->
 <?php if (!empty($get_damping)) : ?>

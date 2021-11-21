@@ -6,6 +6,15 @@
         <div class="col-lg-12 col-md-12 col-12">
             <div class="row mb-6">
                 <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+                    <?php if (session()->getFlashData('berhasil')) : ?>
+                        <div class="alert alert-success" role="alert">
+                            <?= session()->getFlashData('berhasil'); ?>
+                        </div>
+                    <?php elseif (session()->getFlashData('tolak')) : ?>
+                        <div class="alert alert-success" role="alert">
+                            <?= session()->getFlashData('tolak'); ?>
+                        </div>
+                    <?php endif; ?>
                     <div class="mb-2 mt-2" style="display: flex; justify-content: space-between; align-items:center">
                         <h2><?= $title; ?></h2>
                     </div>

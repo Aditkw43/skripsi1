@@ -59,7 +59,8 @@ $validasi_waktu_tidak_sesuai = session()->getFlashData('validasi_waktu_tidak_ses
                                     <th scope="col">Fakultas</th>
                                     <th scope="col">Semester</th>
                                     <th scope="col">Jumlah Ujian</th>
-                                    <th scope="col">Detail</th>
+                                    <th scope="col">UTS</th>
+                                    <th scope="col">UAS</th>
                                 </tr>
                             </thead>
                             <tbody class="text-center table-light">
@@ -73,7 +74,10 @@ $validasi_waktu_tidak_sesuai = session()->getFlashData('validasi_waktu_tidak_ses
                                         <td><?= $j['semester']; ?></td>
                                         <td><?= $j['jumlah_ujian']; ?></td>
                                         <td class="text-center">
-                                            <a class="btn btn-warning btn-sm" href="<?= base_url('/viewJadwal/' . $j['nim']); ?>">Detail</a>
+                                            <a class="btn btn-warning btn-sm" href="<?= base_url('/viewJadwalUTS/' . $j['nim']); ?>">Detail</a>
+                                        </td>
+                                        <td class="text-center">
+                                            <a class="btn btn-warning btn-sm" href="<?= base_url('/viewJadwalUAS/' . $j['nim']); ?>">Detail</a>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>

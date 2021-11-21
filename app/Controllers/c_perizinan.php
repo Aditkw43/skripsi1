@@ -4,8 +4,6 @@ namespace App\Controllers;
 
 use CodeIgniter\I18n\Time;
 use CodeIgniter\HTTP\Request;
-use CodeIgniter\Controller;
-
 use App\Models\m_biodata;
 use App\Models\m_cuti;
 use App\Models\m_damping_ujian;
@@ -227,6 +225,7 @@ class c_perizinan extends BaseController
     {
         $get_all_izin = $this->izin->getAllIzin();
         $get_all_damping = $this->damping_ujian->getAllDamping();
+        $get_all_pendamping = $this->profile_mhs->getAllProfilePendamping();
         $tambah_izin = [];
         $izin_tanpa_pengganti_approval = [];
         $izin_ada_pengganti_approval = [];
@@ -278,7 +277,7 @@ class c_perizinan extends BaseController
             }
         }
 
-        // Tambah izin tidak damping
+        // START Tambah izin tidak damping
         $columns1 = array_column($get_all_damping, 'id_profile_pendamping');
         $columns2 = array_column($get_all_damping, 'id_damping');
         array_multisort($columns1, SORT_ASC, $columns2, SORT_ASC, $get_all_damping);
@@ -304,27 +303,27 @@ class c_perizinan extends BaseController
 
                     $jadwal_ujian = $this->jadwal_ujian->getDetailUjian($key2['id_jadwal_ujian_madif']);
 
-                    $get_all_pendamping = $this->profile_mhs->getAllProfilePendamping();
                     $id_jenis_madif = $this->profile_mhs->getJenisMadif($profile_madif['id_profile_mhs']);
                     $jenis_madif = $this->profile_mhs->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
 
-                    $get_all_pendamping['jenis_difabel'] = $jenis_madif;
-                    $find = $this->damping_ujian->plottingSkill($get_all_pendamping);
-                    unset($get_all_pendamping['jenis_difabel']);
-
-                    $data_pendamping_alt = [
-                        'hasil_find_skill' => $find,
-                        'get_all_pendamping' => $get_all_pendamping,
-                    ];
-                    $pendamping_alt = $this->damping_ujian->findPendampingAlt($data_pendamping_alt);
-
-                    foreach ($pendamping_alt as $key4 => $value4) {
-                        if ($value4['id_profile_pendamping'] == $profile_pendamping['id_profile_mhs']) {
-                            unset($pendamping_alt[$key4]);
+                    $all_id_profile_pendamping = [];
+                    foreach ($get_all_pendamping as $gap) {
+                        if ($gap['id_profile_mhs'] == $key2['id_profile_pendamping']) {
                             continue;
                         }
-                        $pendamping_alt[$key4]['nickname'] = $value4['biodata_pendamping_alt']['nickname'];
-                        unset($pendamping_alt[$key4]['biodata_pendamping_alt']);
+                        $all_id_profile_pendamping[] = $gap['id_profile_mhs'];
+                    }
+
+                    $data_plotting = [
+                        'jadwal_madif' => $jadwal_ujian,
+                        'jenis_difabel' => $jenis_madif,
+                        'all_id_pendamping' => $all_id_profile_pendamping,
+                    ];
+                    $pendamping_alt = $this->damping_ujian->findPendampingAlt1($data_plotting);
+
+                    foreach ($pendamping_alt as $kunci => $value) {
+                        $pendamping_alt[$kunci]['nickname'] = $value['biodata_pendamping']['nickname'];
+                        unset($pendamping_alt[$kunci]['biodata_pendamping']);
                     }
 
                     $insert = [
@@ -342,11 +341,10 @@ class c_perizinan extends BaseController
         }
         // END Tambah Izin Tidak Dmaping
 
-        // Approval perizinan tanpa pengganti
-        $get_all_pendamping = $this->profile_mhs->getAllProfilePendamping();
-
+        // START Approval perizinan tanpa pengganti        
         if (!empty($izin_tanpa_pengganti_approval)) {
             foreach ($izin_tanpa_pengganti_approval as $key5 => $value5) {
+                $all_id_profile_pendamping = [];
                 foreach ($get_all_pendamping as $gap) {
                     if ($gap['id_profile_mhs'] == $value5['pendamping_lama']['id_profile_mhs']) {
                         continue;
@@ -354,102 +352,21 @@ class c_perizinan extends BaseController
                     $all_id_profile_pendamping[] = $gap['id_profile_mhs'];
                 }
 
-                $data_plotting_jadwal = [
-                    'jadwal_madif' => $value5['jadwal_ujian'],
-                    'all_id_pendamping' => $all_id_profile_pendamping,
-                ];
-
-                // Plotting jadwal 
-                d($data_plotting_jadwal);
-                $jadwal_sesuai = $this->damping_ujian->plottingJadwal1($data_plotting_jadwal);
-                // Plotting skill       
                 $id_jenis_madif = $this->profile_mhs->getJenisMadif($value5['jadwal_ujian']['id_profile_mhs']);
                 $jenis_madif = $this->profile_mhs->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
-                $insert_all_id_pendamping_skill = [];
-
-                foreach ($jadwal_sesuai as $js) {
-                    $insert_all_id_pendamping_skill[] = $js['id_profile_pendamping'];
-                }
-                $data_plotting_skill = [
+                $data_plotting = [
+                    'jadwal_madif' => $value5['jadwal_ujian'],
                     'jenis_difabel' => $jenis_madif,
-                    'all_id_pendamping' => $insert_all_id_pendamping_skill,
+                    'all_id_pendamping' => $all_id_profile_pendamping,
                 ];
-                d($data_plotting_skill);
-                $skill_sesuai = $this->damping_ujian->plottingSkill1($data_plotting_skill);
+                $pendamping_alt_1 = $this->damping_ujian->findPendampingAlt1($data_plotting);
 
-                $result = [];
-                foreach ($skill_sesuai as $ss1) {
-                    foreach ($jadwal_sesuai as $js2) {
-                        if ($ss1['id_profile_pendamping'] == $js2['id_profile_pendamping']) {
-                            $result[] = $ss1 + $js2;
-                        }
-                    }
+                foreach ($pendamping_alt_1 as $kunci2 => $value2) {
+                    $pendamping_alt_1[$kunci2]['nickname'] = $value2['biodata_pendamping']['nickname'];
+                    unset($pendamping_alt_1[$kunci2]['biodata_pendamping']);
                 }
 
-                // Tambah izin tidak damping
-                $columns1 = array_column($result, 'jadwal_cocok');
-                $columns2 = array_column($result, 'skill_cocok');
-                $columns3 = array_column($result, 'prioritas');
-                $columns4 = array_column($result, 'id_profile_pendamping');
-                array_multisort($columns1, SORT_DESC, $columns2, SORT_DESC, $columns3, SORT_ASC, $columns4, SORT_ASC, $result);
-
-                $contoh = $data_plotting_jadwal + $data_plotting_skill;                
-                $hasil = $this->damping_ujian->findPendampingAlt1($contoh);
-                d($hasil);
-                d($result);
-                d($jadwal_sesuai);
-                dd($skill_sesuai);
-
-                foreach ($jadwal_sesuai as $kunci => $tjs) {
-                    dd($jadwal_sesuai);
-                    $get_profile = $this->biodata->getProfile($tjs['id_profile_mhs']);
-                    $jadwal_sesuai[$kunci] = $get_profile;
-                }
-                dd($jadwal_sesuai);
-
-                if ($skill_sesuai) {
-                    $cocok_skill = true;
-                } else {
-                    $jadwal_sesuai = $this->profile_mhs->getAllProfilePendamping();
-                    $jadwal_sesuai['jenis_difabel'] = $jenis_madif;
-                    $skill_sesuai = $this->damping_ujian->plottingSkill($jadwal_sesuai);
-                    foreach ($skill_sesuai as $key7 => $value7) {
-                        if ($value7['id_profile_pendamping'] == $value5['pendamping_lama']['id_profile_mhs']) {
-                            unset($skill_sesuai[$key7]);
-                        }
-                    }
-                }
-                // END Plotting Jadwal
-
-                $get_all_pendamping = $this->profile_mhs->getAllProfilePendamping();
-                $data_pendamping_alt = [
-                    'hasil_find_skill' => $skill_sesuai,
-                    'get_all_pendamping' => $get_all_pendamping,
-                ];
-                // find pendamping Alt       
-                $pendamping_alt = $this->damping_ujian->findPendampingAlt($data_pendamping_alt);
-
-                unset($jadwal_sesuai['jenis_difabel']);
-                // foreach ($pendamping_alt as $key8 => $value8) {
-                //     $prioritas = false;
-                //     $pendamping_alt[$key8]['nickname'] = $value8['biodata_pendamping_alt']['nickname'];
-                //     unset($pendamping_alt[$key8]['biodata_pendamping_alt']);
-                //     foreach ($jadwal_sesuai as $key9) {
-                //         if ($value8['id_profile_pendamping'] == $key9['id_profile_mhs']) {
-                //             $pendamping_alt[$key8]['kecocokan_jadwal'] = true;
-                //             $prioritas = true;
-                //             break;
-                //         }
-                //     }
-
-                //     if (!$prioritas) {
-                //         $pendamping_alt[$key8]['kecocokan_jadwal'] = false;
-                //     }
-                // }
-                d($pendamping_alt);
-                dd($jadwal_sesuai);
-
-                $izin_tanpa_pengganti_approval[$key5]['pendamping_alt'] = $pendamping_alt;
+                $izin_tanpa_pengganti_approval[$key5]['pendamping_alt'] = $pendamping_alt_1;
             }
         }
         // END Approval Perizinan tanpa pengganti
@@ -464,8 +381,8 @@ class c_perizinan extends BaseController
             'izin_ada_pengganti_approval' => $izin_ada_pengganti_approval,
             'user' => $this->dataUser,
         ];
-        dd($data);
 
+        // dd($data);
         return view('admin/verifikasi/perizinan/v_all_izin_tidak_damping', $data);
     }
 
@@ -475,12 +392,18 @@ class c_perizinan extends BaseController
         $get_id_profile = $this->biodata->getProfileID($nim);
         $get_profile = $this->biodata->getProfile($get_id_profile);
         $get_cuti = $this->cuti->getAllCuti($get_profile);
-        $insert_data_cuti = [];
+        $cuti_semester = [];
+        $cuti_sementara = [];
 
         foreach ($get_cuti as $key) {
             $tanggal = date_create($key['tanggal_selesai']);
             $tanggal_now = date_create(date('Y-m-d'));
             $diff = date_diff($tanggal, $tanggal_now);
+            if ($tanggal > $tanggal_now) {
+                $diff = $diff->days;
+            } else {
+                $diff = null;
+            }
             $insert = [
                 'id_cuti' => $key['id_cuti'],
                 'id_profile_mhs' => $key['id_profile_mhs'],
@@ -490,15 +413,48 @@ class c_perizinan extends BaseController
                 'keterangan' => $key['keterangan'],
                 'dokumen' => $key['dokumen'],
                 'approval' => $key['approval'],
-                'sisa_waktu' => $diff->days,
+                'sisa_waktu' => $diff,
+                'urutan' => ($key['approval'] == null) ? 1 : (($key['approval'] == 1) ? 2 : 3),
             ];
-            $insert_data_cuti[] = $insert;
+
+            if ($key['jenis_cuti'] == 'cuti_semester') {
+                $insert['semester'] = (date('m', strtotime($key['tanggal_selesai'])) == "06") ? "Genap" : "Ganjil";
+                $cuti_semester[] = $insert;
+            } else {
+                $cuti_sementara[] = $insert;
+            }
         }
+
+        $columns1 = array_column($cuti_semester, 'urutan');
+        $columns2 = array_column($cuti_semester, 'sisa_waktu');
+        $columns3 = array_column($cuti_semester, 'tanggal_selesai');
+        array_multisort($columns1, SORT_ASC, $columns2, SORT_ASC, $columns3, SORT_DESC, $cuti_semester);
+
+        $columns1 = array_column($cuti_sementara, 'urutan');
+        $columns2 = array_column($cuti_sementara, 'sisa_waktu');
+        $columns3 = array_column($cuti_sementara, 'tanggal_selesai');
+        array_multisort($columns1, SORT_ASC, $columns2, SORT_ASC, $columns3, SORT_DESC, $cuti_sementara);
+
+        // Pengaturan tanggal cuti semester
+        $get_now = Time::today();
+        $get_year = $get_now->getYear();
+        $ganjil_awal = date_create();
+        date_date_set($ganjil_awal, $get_year, 8, 1);
+        $ganjil_akhir = date_create();
+        date_date_set($ganjil_akhir, $get_year, 12, 30);
+
+        $tahun_semester = [
+            'genap' => 'Genap (' . (($get_now > $ganjil_awal) ? ($get_year + 1) : $get_year) . ")",
+            'ganjil' => 'Ganjil (' . (($get_now > $ganjil_akhir) ? ($get_year + 1) : $get_year) . ")",
+        ];
+        // END
 
         $data = [
             'title' => 'Daftar Perizinan Cuti ',
             'user' => $this->dataUser,
-            'get_cuti' => $insert_data_cuti,
+            'cuti_semester' => $cuti_semester,
+            'cuti_sementara' => $cuti_sementara,
+            'tahun_semester' => $tahun_semester,
             'id_mhs' => $get_id_profile,
         ];
         // dd($data);
@@ -692,6 +648,11 @@ class c_perizinan extends BaseController
 
     public function saveCuti()
     {
+        // Rules
+        /**
+         * Untuk cuti semester:
+         * Apabila sudah pernah diajukan dan approval terverifikasi/sedang diverifikasi, maka tidak dapat melakukan pengajuan cuti di semester yang sama
+         */
         $get_admin = $this->request->getVar('admin');
         $get_id_profile_mhs = $this->request->getVar('id_profile_mhs');
         $get_jenis_cuti = $this->request->getVar('jenis_cuti');
@@ -699,19 +660,58 @@ class c_perizinan extends BaseController
         $get_dokumen = $this->request->getFile('dokumen');
 
         $get_semester = $this->request->getVar('semester');
-        $get_year = Time::today();
-        $get_year = $get_year->getYear();
+        $get_now = Time::today();
+        $get_year = $get_now->getYear();
+        $ganjil_awal = date_create();
+        date_date_set($ganjil_awal, $get_year, 8, 1);
+        $ganjil_akhir = date_create();
+        date_date_set($ganjil_akhir, $get_year, 12, 30);
 
         if ($get_jenis_cuti == 'cuti_semester' && $get_semester == 'ganjil') {
-            $get_tanggal_mulai_cuti = $get_year . "-08-01";
-            $get_tanggal_selesai_cuti = $get_year . "-12-30";
+            if ($get_now > $ganjil_akhir) {
+                $get_year++;
+                $get_tanggal_mulai_cuti = $get_year . "-08-01";
+                $get_tanggal_selesai_cuti = $get_year . "-12-30";
+            } else {
+                $get_tanggal_mulai_cuti = $get_year . "-08-01";
+                $get_tanggal_selesai_cuti = $get_year . "-12-30";
+            }
         } elseif ($get_jenis_cuti == 'cuti_semester') {
-            $get_tanggal_mulai_cuti = $get_year . "-02-01";
-            $get_tanggal_selesai_cuti = $get_year . "-06-30";
+            if ($get_now > $ganjil_awal) {
+                $get_year++;
+                $get_tanggal_mulai_cuti = $get_year . "-02-01";
+                $get_tanggal_selesai_cuti = $get_year . "-06-30";
+            } else {
+                $get_tanggal_mulai_cuti = $get_year . "-02-01";
+                $get_tanggal_selesai_cuti = $get_year . "-06-30";
+            }
         } else {
             $get_tanggal_mulai_cuti = $this->request->getVar('tanggal_mulai_cuti');
             $get_tanggal_selesai_cuti = $this->request->getVar('tanggal_selesai_cuti');
+
+            $cek_kesesuaian_urutan_tanggal = $get_tanggal_selesai_cuti > $get_tanggal_mulai_cuti;
+            $cek_tanggal = $get_now < $get_tanggal_mulai_cuti || $get_now < $get_tanggal_selesai_cuti;
+
+            if (!$cek_kesesuaian_urutan_tanggal || !$cek_tanggal) {
+                ($cek_kesesuaian_urutan_tanggal == false) ? ($pesan = 'Tanggal tidak sesuai dengan urutan yang benar') : ($pesan = 'Tanggal perizinan sudah terlewat');
+                session()->setFlashdata('gagal_ditambahkan', $pesan);
+                return redirect()->back();
+            }
+            session()->setFlashdata('berhasil', 'Perizinan cuti sementara berhasil diajukan');
         }
+
+        // Cek apakah cuti semester pernah diajukan, dan masih dalam verifikasi admin
+        if (!($get_jenis_cuti == 'cuti_sementara')) {
+            $cek_cuti_disetujui = $this->cuti->where('id_profile_mhs', $get_id_profile_mhs)->where('jenis_cuti', 'cuti_semester')->where('tanggal_mulai', $get_tanggal_mulai_cuti)->where('approval', true)->findAll();
+            $cek_cuti_sedang_approval = $this->cuti->where('id_profile_mhs', $get_id_profile_mhs)->where('jenis_cuti', 'cuti_semester')->where('tanggal_mulai', $get_tanggal_mulai_cuti)->where('approval', null)->findAll();
+
+            if ($cek_cuti_disetujui || $cek_cuti_sedang_approval) {
+                session()->setFlashdata('cuti_pernah_diajukan', 'Perizinan cuti semester ' . ucwords($get_semester) . ' ' . $get_year . ' sudah pernah diajukan');
+                return redirect()->back();
+            }
+            session()->setFlashdata('berhasil', 'Perizinan cuti semester ' . ucwords($get_semester) . ' ' . $get_year . ' berhasil diajukan');
+        }
+
         $namaDokumen = null;
 
         if (file_exists($get_dokumen)) {
@@ -735,12 +735,27 @@ class c_perizinan extends BaseController
             $insert['approval'] = true;
             $get_nim_mhs = $this->profile_mhs->getProfile($get_id_profile_mhs);
             $this->db->table('users')->where(['username' => $get_nim_mhs['nim']])->update(['status' => false]);
-            session()->setFlashdata('berhasil', 'Perizinan cuti berhasil ditambahkan');
-        } else {
-            session()->setFlashdata('berhasil', 'Perizinan cuti berhasil diajukan');
+            session()->setFlashdata('berhasil', 'Perizinan cuti mahasiswa ' . $get_nim_mhs['nickname'] . ' berhasil ditambahkan');
         }
 
         $this->cuti->save($insert);
+
+        return redirect()->back();
+    }
+
+    public function delCuti()
+    {
+        $get_id_cuti = $this->request->getUri()->getSegment(3);
+        $get_cuti = $this->cuti->find($get_id_cuti);
+        if ($get_cuti['jenis_cuti'] == 'cuti_sementara') {
+            $jenis_semester = 'sementara';
+        } else {
+            $jenis_semester = ((date('m', strtotime($get_cuti['tanggal_selesai'])) == '06') ? 'semester genap ' : 'semester ganjil ');
+            $jenis_semester = $jenis_semester . date('Y', strtotime($get_cuti['tanggal_selesai']));
+        }
+
+        session()->setFlashdata('berhasil_dihapus', 'Perizinan cuti ' . $jenis_semester . ' berhasil dihapus');
+        $this->cuti->delete($get_id_cuti);
 
         return redirect()->back();
     }
@@ -809,13 +824,15 @@ class c_perizinan extends BaseController
 
         if ($status == 'terima') {
             if ($role == 'admin') {
-                $get_id_damping = $this->request->getUri()->getSegment(6);
-                $get_id_pengganti = $this->request->getUri()->getSegment(7);
+                $get_id_damping = $this->request->getVar('id_damping');
+                $get_id_pengganti = $this->request->getVar('pendamping_pengganti');
+                $this->izin->update($get_id_izin, ['id_pendamping_baru' => $get_id_pengganti, 'approval_pengganti' => '1']);
                 $this->damping_ujian->update($get_id_damping, ['id_profile_pendamping' => $get_id_pengganti, 'status_damping' => 'presensi_hadir']);
             }
-
+            session()->setFlashdata('berhasil', 'Perizinan berhasil disetujui');
             $this->izin->update($get_id_izin, [$approval => '1']);
         } elseif ($status == 'tolak') {
+            session()->setFlashdata('tolak', 'Perizinan berhasil ditolak');
             $this->izin->update($get_id_izin, [$approval => '0']);
         }
 

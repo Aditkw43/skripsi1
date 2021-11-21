@@ -46,7 +46,7 @@ class m_izin_tidak_damping extends Model
                 foreach ($get_skill as $gs) {
                     $ref_pendampingan = $m_skill->getKategoriDifabel($gs['ref_pendampingan']);
                     $insert = [
-                        'ref_pendampingan' => $ref_pendampingan->jenis,
+                        'ref_pendampingan' => $ref_pendampingan['jenis'],
                         'prioritas' => $gs['prioritas'],
                     ];
 
@@ -156,10 +156,13 @@ class m_izin_tidak_damping extends Model
     {
         // Semua damping
         if (empty($data)) {
-            return $this->findAll();
+            $get_izin = $this->findAll();
+            return (count($get_izin) != 0) ? $get_izin : null;
         }
 
-        return $this->builder()->select('*')->getWhere(['id_pendamping_lama' => $data['id_profile_mhs']])->getResultArray();
+        $get_izin = $this->builder()->select('*')->getWhere(['id_pendamping_lama' => $data['id_profile_mhs']])->getResultArray();
+
+        return (count($get_izin) != 0) ? $get_izin : null;
     }
 
     public function getDetailIzin($id_izin = null)

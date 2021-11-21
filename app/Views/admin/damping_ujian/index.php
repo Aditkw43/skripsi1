@@ -7,7 +7,7 @@
             <div class="row mb-6">
                 <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                     <div class="mb-2 mt-2" style="display: flex; justify-content: space-between; align-items:center">
-                        <h2><?= $title; ?> Mahasiswa Difabel</h2>
+                        <h2><?= $title; ?></h2>
                         <!-- Button trigger modal -->
                         <button type="button" class="btn btn-primary btn-sm mt-3" data-bs-toggle="modal" data-bs-target="#generate" ?>
                             Generate Pendampingan Ujian

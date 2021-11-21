@@ -78,6 +78,7 @@
                     </div>
                 </a>
                 <div class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownUser">
+                    
                     <div class="px-4 pb-0 pt-2">
                         <div class="lh-1 ">
                             <h5 class="mb-1"><?= user()->username; ?></h5>
@@ -87,12 +88,6 @@
                     </div>
 
                     <ul class="list-unstyled">
-                        <li>
-                            <a class="dropdown-item" href="#">
-                                <i class="me-2 icon-xxs dropdown-item-icon" data-feather="user"></i>Edit
-                                Profile
-                            </a>
-                        </li>
                         <li>
                             <a class="dropdown-item" href="#">
                                 <i class="me-2 icon-xxs dropdown-item-icon" data-feather="activity"></i>Activity Log

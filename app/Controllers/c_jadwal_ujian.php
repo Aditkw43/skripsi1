@@ -107,8 +107,8 @@ class c_jadwal_ujian extends BaseController
         return view('admin/jadwal_ujian/v_all_jadwal_ujian', $data);
     }
 
-    // Melihat jadwal mahasiswa
-    public function viewJadwal()
+    // Melihat jadwal UTS mahasiswa 
+    public function viewJadwalUTS()
     {
         // get id profile
         $id_profile_mhs = $this->profile->getID($this->request->getUri()->getSegment(2));
@@ -116,8 +116,37 @@ class c_jadwal_ujian extends BaseController
 
         $data = [
             'id_profile_mhs' => $id_profile_mhs,
-            'title' => 'Daftar Jadwal Ujian ' . $nama['nickname'],
-            'jadwal' => $this->jadwal_ujian->getJadwalUjian($id_profile_mhs),
+            'nama_mhs' => $nama['nickname'],
+            'title' => 'Daftar Jadwal Ujian UTS ',
+            'jadwal' => $this->jadwal_ujian->getJadwalUjianUTS($id_profile_mhs),
+            'jenis_ujian' => 'UTS',
+        ];
+
+        if ($this->dataUser->name == 'admin') {
+            $data['user'] = $this->dataUser;
+        } else {
+            $this->builder->where('username', $this->request->getUri()->getSegment(2));
+            $query = $this->builder->get();
+            $data['user'] = $query->getRow();
+        }
+        // dd($data);
+
+        return view('mahasiswa/jadwal_ujian/v_jadwal_ujian', $data);
+    }
+
+    // Melihat jadwal UAS mahasiswa
+    public function viewJadwalUAS()
+    {
+        // get id profile
+        $id_profile_mhs = $this->profile->getID($this->request->getUri()->getSegment(2));
+        $nama = $this->biodata->getBiodata($id_profile_mhs);
+
+        $data = [
+            'id_profile_mhs' => $id_profile_mhs,
+            'nama_mhs' => $nama['nickname'],
+            'title' => 'Daftar Jadwal Ujian UAS ',
+            'jadwal' => $this->jadwal_ujian->getJadwalUjianUAS($id_profile_mhs),
+            'jenis_ujian' => 'UAS',
         ];
 
         if ($this->dataUser->name == 'admin') {
@@ -175,6 +204,7 @@ class c_jadwal_ujian extends BaseController
             'waktu_selesai_ujian' => $data['waktu_selesai_ujian'],
             'ruangan' => $this->request->getVar('ruangan'),
             'keterangan' => $this->request->getVar('keterangan'),
+            'jenis_ujian' => $this->request->getVar('jenis_ujian'),
         ]);
 
         if (!empty($this->request->getVar('admin'))) {
@@ -273,8 +303,8 @@ class c_jadwal_ujian extends BaseController
     public function delJadwal()
     {
         $matkul = $this->jadwal_ujian->getDetailUjian($this->request->getVar('id_jadwal_ujian'));
-        session()->setFlashdata('berhasil_dihapus', 'Jadwal ujian ' . $matkul['mata_kuliah'] . ' berhasil dihapus');
         $this->jadwal_ujian->delete($this->request->getVar('id_jadwal_ujian'));
+        session()->setFlashdata('berhasil_dihapus', 'Jadwal ujian ' . $matkul['mata_kuliah'] . ' berhasil dihapus');
         return redirect()->back();
     }
 

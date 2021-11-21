@@ -124,6 +124,7 @@ class m_profile_mhs extends Model
             'id_profile_pendamping'  => (int) $data['id_profile_pendamping'],
             'ref_pendampingan' => (int) $data['ref_pendampingan'],
             'prioritas' => (int) $data['prioritas'],
+            'approval' => $data['approval'],
         ];
 
         $this->db->table('profile_skills')->insert($data);
@@ -178,7 +179,7 @@ class m_profile_mhs extends Model
                             'id_profile_pendamping' => $ganti->id_profile_pendamping,
                             'ref_pendampingan' => $ganti->ref_pendampingan,
                             'prioritas' => $ganti->prioritas + 1,
-                            'approval' => $ganti->approval,
+                            'approval' => null,
                         ];
 
                         $this->db->table('profile_skills')->where('id_profile_pendamping', $data['id_profile_pendamping'])->where('prioritas', $i)->replace($insert);
@@ -213,7 +214,7 @@ class m_profile_mhs extends Model
                     'id_profile_pendamping'  => (int) $data['id_profile_pendamping'],
                     'ref_pendampingan' => (int) $data['ref_pendampingan'],
                     'prioritas' => (int) $data['prioritas'],
-                    'approval' => $data['approval'],
+                    'approval' => null,
                 ];
                 $this->db->table('profile_skills')->where('id_profile_pendamping', $insert['id_profile_pendamping'])->where('prioritas', $insert['prioritas'])->replace($insert);
             }
@@ -361,7 +362,7 @@ class m_profile_mhs extends Model
     public function getAllProfileMadif()
     {
         $biodata = $this;
-        $biodata->select('profile_mhs.id_profile_mhs,nim,nickname,fullname,fakultas,jurusan,prodi,semester,name as role,users.status, kategori_difabel.jenis');
+        $biodata->select('profile_mhs.id_profile_mhs,nim,fakultas,jurusan,prodi,semester,nickname,fullname, jenis_kelamin, alamat, nomor_hp, email,users.status,kategori_difabel.id as id_jenis_difabel ,kategori_difabel.jenis as jenis_difabel,profile_jenis_madif.approval as approval_jenis_difabel');
         $biodata->join('biodata', 'biodata.id_profile_mhs = profile_mhs.id_profile_mhs');
         $biodata->where('madif', 1);
         $biodata->join('users', 'users.username = profile_mhs.nim');
@@ -376,7 +377,7 @@ class m_profile_mhs extends Model
     public function getAllProfilePendamping()
     {
         $biodata = $this;
-        $biodata->select('profile_mhs.id_profile_mhs,nim,nickname,fullname,fakultas,jurusan,prodi,semester,name as role,users.status');
+        $biodata->select('profile_mhs.id_profile_mhs,nim,fakultas,jurusan,prodi,semester,nickname,fullname, jenis_kelamin, alamat, nomor_hp, email,users.status');
         $biodata->join('biodata', 'biodata.id_profile_mhs = profile_mhs.id_profile_mhs');
         $biodata->where('pendamping', 1);
         $biodata->join('users', 'users.username = profile_mhs.nim');
@@ -389,13 +390,28 @@ class m_profile_mhs extends Model
     public function getAllProfileAdmin()
     {
         $biodata = $this->db->table('profile_admin');
-        $biodata->select('profile_admin.id_profile_admin,profile_admin.username,profile_admin.jabatan,biodata.nickname,biodata.fullname,biodata.jenis_kelamin, biodata.alamat,biodata.nomor_hp');
+        $biodata->select('profile_admin.id_profile_admin,profile_admin.username,profile_admin.jabatan,biodata.nickname,biodata.fullname,biodata.jenis_kelamin, biodata.alamat,biodata.nomor_hp,users.email,users.status');
         $biodata->join('biodata', 'biodata.id_profile_admin = profile_admin.id_profile_admin');
         $biodata->join('users', 'users.username = profile_admin.username');
         $biodata->join('auth_groups_users', 'auth_groups_users.user_id = users.id');
         $biodata->join('auth_groups', 'auth_groups.id = auth_groups_users.group_id');
 
         return $biodata->get()->getResultArray();
+    }
+
+    public function getAllProfileMhs()
+    {
+        $biodata = $this;
+        $biodata->select('profile_mhs.id_profile_mhs,nim,nickname,fullname,fakultas,jurusan,prodi,semester,name as role,users.status, kategori_difabel.jenis');
+        $biodata->join('biodata', 'biodata.id_profile_mhs = profile_mhs.id_profile_mhs');
+        $biodata->join('users', 'users.username = profile_mhs.nim');
+        $biodata->join('auth_groups_users', 'auth_groups_users.user_id = users.id');
+        $biodata->join('auth_groups', 'auth_groups.id = auth_groups_users.group_id');
+        $biodata->join('profile_jenis_madif', 'profile_jenis_madif.id_profile_madif = profile_mhs.id_profile_mhs', 'left');
+        $biodata->join('kategori_difabel', 'kategori_difabel.id = profile_jenis_madif.id_jenis_difabel', 'left');
+        $biodata->orderBy('id_profile_mhs', 'ASC');
+
+        return $biodata->findAll();
     }
 
     public function getJumlahUjianMHS($nim = 0)

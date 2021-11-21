@@ -17,7 +17,7 @@ $validasi_waktu_tidak_sesuai = session()->getFlashData('validasi_waktu_tidak_ses
             <div class="row mb-6">
                 <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                     <div id="examples" class="mb-4">
-                        <h2><?= $title; ?></h2>
+                        <h2><?= $title; ?> <?= in_groups('admin') ? $nama_mhs : ''; ?></h2>
                         <!-- Pesan keberhasilan hapus -->
                         <?php if (session()->getFlashData('berhasil_dihapus')) : ?>
                             <div class="alert alert-success" role="alert">
@@ -101,8 +101,8 @@ $validasi_waktu_tidak_sesuai = session()->getFlashData('validasi_waktu_tidak_ses
                                             <?php foreach ($jadwal as $j) : ?>
                                                 <tr class="align-middle <?= (session()->getFlashData('idUjian') == $j['id_jadwal_ujian']) ? 'table-danger' : '' ?>">
                                                     <th scope="row"><?= $i++; ?></th>
-                                                    <td style="col-2"><?= $j['mata_kuliah']; ?></td>
-                                                    <td class="col-2"><?= date('d,M Y', strtotime($j['tanggal_ujian'])); ?></td>
+                                                    <td style="col-auto"><?= $j['mata_kuliah']; ?></td>
+                                                    <td class="col-2" id="col-responsive"><?= date('d,M Y', strtotime($j['tanggal_ujian'])); ?></td>
 
                                                     <!-- Start hidden jam ujian -->
                                                     <!-- Untuk di fetch di modal edit -->
@@ -110,11 +110,11 @@ $validasi_waktu_tidak_sesuai = session()->getFlashData('validasi_waktu_tidak_ses
                                                     <td style="display: none;"><?= date('H:i', strtotime($j['waktu_selesai_ujian'])); ?></td>
                                                     <!-- End hidden jam ujian -->
 
-                                                    <td class="col-2 mx-0"><?= date('H:i', strtotime($j['waktu_mulai_ujian'])); ?> - <?= date('H:i', strtotime($j['waktu_selesai_ujian'])); ?></td>
+                                                    <td class="col-2" id="col-responsive"><?= date('H:i', strtotime($j['waktu_mulai_ujian'])); ?> - <?= date('H:i', strtotime($j['waktu_selesai_ujian'])); ?></td>
 
                                                     <td><?= $j['ruangan']; ?></td>
 
-                                                    <td><button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#keteranganJadwal<?= $j['id_jadwal_ujian']; ?>" ?>
+                                                    <td><button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#keteranganJadwal<?= $j['id_jadwal_ujian']; ?>" ?>
                                                             Keterangan
                                                         </button></td>
 
@@ -132,7 +132,7 @@ $validasi_waktu_tidak_sesuai = session()->getFlashData('validasi_waktu_tidak_ses
                                                         </td>
                                                     <?php elseif (in_groups('admin')) : ?>
                                                         <?php if ($j['approval'] === null) : ?>
-                                                            <td>
+                                                            <td class="col-2" id="col-responsive">
                                                                 <a href="<?= base_url('c_jadwal_ujian/approval'); ?>/<?= $j['id_jadwal_ujian'], '/terima'; ?>" class="btn btn-success btn-sm my-1">Terima</a>
                                                                 <a href="<?= base_url('c_jadwal_ujian/approval'); ?>/<?= $j['id_jadwal_ujian'] . '/tolak'; ?>" class="btn btn-danger btn-sm">Tolak</a>
                                                             </td>
@@ -179,11 +179,14 @@ $validasi_waktu_tidak_sesuai = session()->getFlashData('validasi_waktu_tidak_ses
                                             <div class="row">
                                                 <div class="col">
                                                     <p class="fs-4 text-center">Masukkan Jadwal Ujian</p>
-                                 <form action="/c_jadwal_ujian/saveJadwal" method="POST">
+                                                    <form action="/c_jadwal_ujian/saveJadwal" method="POST">
                                                         <?= csrf_field(); ?>
 
                                                         <!-- id_profile_mhs -->
                                                         <input type="hidden" name="id_profile_mhs" value="<?= $id_profile_mhs; ?>">
+
+                                                        <!-- jenis_ujian -->
+                                                        <input type="hidden" name="jenis_ujian" value="<?= $jenis_ujian; ?>">
 
                                                         <!--Mata Kuliah -->
                                                         <div class="row mb-3">
@@ -285,8 +288,8 @@ $validasi_waktu_tidak_sesuai = session()->getFlashData('validasi_waktu_tidak_ses
                                                         <div class="d-grid mt-3 gap-2 d-md-flex justify-content-md-end">
                                                             <button type="submit" class="btn btn-primary">Submit</button>
                                                         </div>
-                                                    </form>                   <!-- Form Tambah Jadwal Ujian -->
-                                                    
+                                                    </form> <!-- Form Tambah Jadwal Ujian -->
+
                                                 </div>
                                             </div>
                                         </div>
@@ -304,6 +307,24 @@ $validasi_waktu_tidak_sesuai = session()->getFlashData('validasi_waktu_tidak_ses
 <!-- Modal jadwal ujian -->
 <?php if (!empty($jadwal)) : ?>
     <?php foreach ($jadwal as $j) : ?>
+
+        <!-- Modal Keterangan -->
+        <div class="modal fade" id="keteranganJadwal<?= $j['id_jadwal_ujian']; ?>" aria-hidden="true" aria-labelledby="exampleModalToggleLabel2" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header" style="background-color: rgba(34, 84, 145, 1);">
+                        <h5 class="modal-title text-white" id="exampleModalToggleLabel2">Keterangan Jadwal Ujian <?= $j['mata_kuliah']; ?></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" style="color: black">
+                        <?= $j['keterangan']; ?>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Modal Delete Jadwal-->
         <div class="modal fade" id="delJadwal<?= $j['id_jadwal_ujian']; ?>" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -540,5 +561,28 @@ $validasi_waktu_tidak_sesuai = session()->getFlashData('validasi_waktu_tidak_ses
         </div>
     <?php endforeach; ?>
 <?php endif; ?>
+
+<!-- Responsive table -->
+<script>
+    document.getElementById("nav-toggle").addEventListener("click", function() {
+        var col = document.querySelectorAll("#col-responsive");
+        console.log(col);
+        if (col[0].classList[0] == 'col-2') {
+            console.log("table melebar");
+            for (let i = 0; i < col.length; i++) {
+                col[i].setAttribute("class", "col-auto");
+
+            }
+            // col.className = "col-auto col-responsive";
+        } else {
+            for (let i = 0; i < col.length; i++) {
+                col[i].setAttribute("class", "col-2");
+
+            }
+            console.log("table menyempit");
+            // col.className = "col-2 col-responsive";
+        }
+    });
+</script>
 
 <?= $this->endSection(); ?>

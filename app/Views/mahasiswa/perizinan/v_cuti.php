@@ -6,7 +6,24 @@
         <div class="col-lg-12 col-md-12 col-12">
             <div class="row mb-6">
                 <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-
+                    <!-- Pesan keberhasilan hapus -->
+                    <?php if (session()->getFlashData('berhasil')) : ?>
+                        <div class="alert alert-success" role="alert">
+                            <?= session()->getFlashData('berhasil'); ?>
+                        </div>
+                    <?php elseif (session()->getFlashData('berhasil_dihapus')) : ?>
+                        <div class="alert alert-success" role="alert">
+                            <?= session()->getFlashData('berhasil_dihapus'); ?>
+                        </div>
+                    <?php elseif (session()->getFlashData('cuti_pernah_diajukan')) : ?>
+                        <div class="alert alert-danger" role="alert">
+                            <?= session()->getFlashData('cuti_pernah_diajukan'); ?>
+                        </div>
+                    <?php elseif (session()->getFlashData('gagal_ditambahkan')) : ?>
+                        <div class="alert alert-danger" role="alert">
+                            <?= session()->getFlashData('gagal_ditambahkan'); ?>
+                        </div>
+                    <?php endif; ?>
                     <div id="examples" class="mb-4">
                         <h2><?= $title; ?></h2>
                     </div>
@@ -44,40 +61,53 @@
                                                 <th scope="col">Sisa Waktu</th>
                                                 <th scope="col">Keterangan</th>
                                                 <th scope="col">Status</th>
-                                                <th scope="col">Dokumen</th>
+                                                <th scope="col">Detail</th>
                                             </tr>
                                         </thead>
 
                                         <tbody class="table-light">
                                             <?php $i = 1; ?>
-                                            <?php foreach ($get_cuti as $gt) : ?>
-                                                <?php if ($gt['jenis_cuti'] == 'cuti_sementara') : ?>
-                                                    <tr class="align-middle" style="color: <?= ($gt['approval'] == 0) ? 'grey' : '' ?>;">
-                                                        <!-- Nomor -->
-                                                        <th scope="row"><?= $i++; ?></th>
+                                            <?php foreach ($cuti_sementara as $key1) : ?>
+                                                <tr class="align-middle" style="color: <?= ($key1['approval'] == "0") ? 'grey' : '' ?>;">
+                                                    <!-- Nomor -->
+                                                    <th scope="row"><?= $i++; ?></th>
 
-                                                        <!-- Tanggal Cuti -->
-                                                        <td><?= date('d, M Y', strtotime($gt['tanggal_mulai'])); ?> - <?= date('d, M Y', strtotime($gt['tanggal_selesai'])); ?></td>
+                                                    <!-- Tanggal Cuti -->
+                                                    <td><?= date('d, M Y', strtotime($key1['tanggal_mulai'])); ?> - <?= date('d, M Y', strtotime($key1['tanggal_selesai'])); ?></td>
 
-                                                        <!-- Sisa Waktu Cuti -->
-                                                        <td><span style="color: <?= ($gt['approval'] == 0 && isset($gt['approval'])) ? 'grey' : 'red' ?>;"><?= $gt['sisa_waktu']; ?></span> hari</td>
-
-                                                        <!-- Keterangan -->
-                                                        <td><?= $gt['keterangan']; ?></td>
-
-                                                        <!--  status -->
-                                                        <?php if (!isset($gt['approval'])) : ?>
-                                                            <td style="color: blue;">Menunggu Verifikasi Admin</td>
-                                                        <?php elseif ($gt['approval'] == 1) : ?>
-                                                            <td style="color: green;">Diterima</td>
-                                                        <?php elseif ($gt['approval'] == 0) : ?>
-                                                            <td style="color: red;">Ditolak</td>
+                                                    <!-- Sisa Waktu Cuti -->
+                                                    <td>
+                                                        <?php if (empty($key1['sisa_waktu']) && ($key1['approval'] == "1")) : ?>
+                                                            <span style="color:green">Selesai</span>
+                                                        <?php elseif ($key1['approval'] == "0") : ?>
+                                                            <span style="color: grey;">-</span>
+                                                        <?php else : ?>
+                                                            <span style="color: red;"><?= $key1['sisa_waktu']; ?></span> hari
                                                         <?php endif; ?>
+                                                    </td>
 
-                                                        <!-- Dokumen -->
-                                                        <td><a href="/public/img/default.svg" class="btn btn-info btn-sm">Dokumen</a></td>
-                                                    </tr>
-                                                <?php endif; ?>
+                                                    <!-- Keterangan -->
+                                                    <td><?= $key1['keterangan']; ?></td>
+
+                                                    <!--  status -->
+                                                    <?php if (!isset($key1['approval'])) : ?>
+                                                        <td style="color: blue;">Menunggu Verifikasi Admin</td>
+                                                    <?php elseif ($key1['approval'] == 1) : ?>
+                                                        <td style="color: green;">Diterima</td>
+                                                    <?php elseif ($key1['approval'] == 0) : ?>
+                                                        <td style="color: red;">Ditolak</td>
+                                                    <?php endif; ?>
+
+                                                    <!-- Dokumen -->
+                                                    <td>
+                                                        <a href="/img/dokumen_izin/cuti/<?= $key1['dokumen']; ?>" target="_blank" class="btn btn-secondary btn-sm"><i class="fa fa-download"></i> Dokumen</a>
+                                                        <?php if ($key1['approval'] == '0') : ?>
+                                                            <a href="<?= base_url('c_perizinan/delCuti/' . $key1['id_cuti']); ?>" class="btn btn-danger btn-sm my-1">
+                                                                <i class="fas fa-trash"></i>
+                                                            </a>
+                                                        <?php endif ?>
+                                                    </td>
+                                                </tr>
                                             <?php endforeach; ?>
                                         </tbody>
 
@@ -97,41 +127,44 @@
                                                 <th scope="col">Semester</th>
                                                 <th scope="col">Keterangan</th>
                                                 <th scope="col">Status</th>
-                                                <th scope="col">Dokumen</th>
+                                                <th scope="col">Detail</th>
                                             </tr>
                                         </thead>
 
                                         <tbody class="table-light">
                                             <?php $i = 1; ?>
-                                            <?php foreach ($get_cuti as $gt) : ?>
-                                                <?php if ($gt['jenis_cuti'] == 'cuti_semester') : ?>
-                                                    <tr class="align-middle" style="color: <?= ($gt['approval'] == 0 && isset($gt['approval'])) ? 'grey' : '' ?>;">
-                                                        <!-- Nomor -->
-                                                        <th scope="row"><?= $i++; ?></th>
+                                            <?php foreach ($cuti_semester as $key2) : ?>
+                                                <tr class="align-middle" style="color: <?= ($key2['approval'] == "0") ? 'grey' : '' ?>;">
+                                                    <!-- Nomor -->
+                                                    <th scope="row"><?= $i++; ?></th>
 
-                                                        <!-- Semester-->
-                                                        <?php if ($gt['tanggal_mulai'] == '2021-02-01') : ?>
-                                                            <td><span style="color: <?= ($gt['approval'] == 0 && isset($gt['approval'])) ? 'grey' : 'red' ?>;">Genap</span>, <?= date('Y', strtotime($gt['tanggal_mulai'])); ?></td>
-                                                        <?php else : ?>
-                                                            <td><span style="color: <?= ($gt['approval'] == 0 && isset($gt['approval'])) ? 'grey' : 'red' ?>;">Ganjil</span>, <?= date('Y', strtotime($gt['tanggal_mulai'])); ?></td>
-                                                        <?php endif; ?>
+                                                    <!-- Semester-->
+                                                    <td>
+                                                        <span style="color: <?= ($key2['approval'] == 0 && isset($key2['approval'])) ? 'grey' : 'red' ?>;"><?= $key2['semester']; ?></span>, <?= date('Y', strtotime($key2['tanggal_mulai'])); ?>
+                                                    </td>
 
-                                                        <!-- Keterangan -->
-                                                        <td><?= $gt['keterangan']; ?></td>
+                                                    <!-- Keterangan -->
+                                                    <td><?= $key2['keterangan']; ?></td>
 
-                                                        <!--  status -->
-                                                        <?php if (!isset($gt['approval'])) : ?>
-                                                            <td style="color: blue;">Menunggu Verifikasi Admin</td>
-                                                        <?php elseif ($gt['approval'] == 1) : ?>
-                                                            <td style="color: green;">Diterima</td>
-                                                        <?php elseif ($gt['approval'] == 0) : ?>
-                                                            <td style="color: red;">Ditolak</td>
-                                                        <?php endif; ?>
+                                                    <!--  status -->
+                                                    <?php if (!isset($key2['approval'])) : ?>
+                                                        <td style="color: blue;">Menunggu Verifikasi Admin</td>
+                                                    <?php elseif ($key2['approval'] == 1) : ?>
+                                                        <td style="color: green;">Diterima</td>
+                                                    <?php elseif ($key2['approval'] == 0) : ?>
+                                                        <td style="color: red;">Ditolak</td>
+                                                    <?php endif; ?>
 
-                                                        <!-- Dokumen -->
-                                                        <td><a href="/public/img/default.svg" class="btn btn-<?= ($gt['approval'] == 0 && isset($gt['approval'])) ? 'secondary' : 'info' ?> btn-sm">Dokumen</a></td>
-                                                    </tr>
-                                                <?php endif; ?>
+                                                    <!-- Dokumen -->
+                                                    <td>
+                                                        <a href="/img/dokumen_izin/cuti/<?= $key2['dokumen']; ?>" target="_blank" class="btn btn-secondary btn-sm"><i class="fa fa-download"></i> Dokumen</a>
+                                                        <?php if ($key2['approval'] == '0') : ?>
+                                                            <a href="<?= base_url('c_perizinan/delCuti/' . $key2['id_cuti']); ?>" class="btn btn-danger btn-sm my-1">
+                                                                <i class="fas fa-trash"></i>
+                                                            </a>
+                                                        <?php endif ?>
+                                                    </td>
+                                                </tr>
                                             <?php endforeach; ?>
                                         </tbody>
 
@@ -176,8 +209,8 @@
                                                             <div class="col-sm-9">
                                                                 <select class="form-select" aria-label="Default select example" name="semester">
                                                                     <option selected value="">Pilih Semester</option>
-                                                                    <option value="ganjil">Ganjil</option>
-                                                                    <option value="genap">Genap</option>
+                                                                    <option value="ganjil"><?= $tahun_semester['ganjil']; ?></option>
+                                                                    <option value="genap"><?= $tahun_semester['genap']; ?></option>
                                                                 </select>
                                                             </div>
                                                         </div>
@@ -227,9 +260,7 @@
                             </div>
 
                         </div>
-
                     </div>
-
                 </div>
             </div>
         </div>

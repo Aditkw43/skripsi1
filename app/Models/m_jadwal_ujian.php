@@ -8,10 +8,11 @@ use PhpParser\Node\Stmt\Break_;
 
 class m_jadwal_ujian extends Model
 {
+
     protected $table = 'jadwal_ujian';
     protected $primaryKey = 'id_jadwal_ujian';
     protected $useTimestamps = true;
-    protected $allowedFields = ['id_profile_mhs', 'mata_kuliah', 'tanggal_ujian', 'waktu_mulai_ujian', 'waktu_selesai_ujian', 'ruangan', 'keterangan', 'approval'];
+    protected $allowedFields = ['id_profile_mhs', 'mata_kuliah', 'tanggal_ujian', 'waktu_mulai_ujian', 'waktu_selesai_ujian', 'ruangan', 'keterangan', 'jenis_ujian', 'approval'];
 
     public function getAllJadwalUjian()
     {
@@ -26,6 +27,16 @@ class m_jadwal_ujian extends Model
     public function getJadwalUjian($id_profile_mhs = 0)
     {
         return $this->where(['id_profile_mhs' => $id_profile_mhs])->orderBy('tanggal_ujian', 'asc')->findAll();
+    }
+
+    public function getJadwalUjianUTS($id_profile_mhs = 0)
+    {
+        return $this->where(['id_profile_mhs' => $id_profile_mhs, 'jenis_ujian' => 'UTS'])->orderBy('tanggal_ujian', 'asc')->findAll();
+    }
+
+    public function getJadwalUjianUAS($id_profile_mhs = 0)
+    {
+        return $this->where(['id_profile_mhs' => $id_profile_mhs, 'jenis_ujian' => 'UAS'])->orderBy('tanggal_ujian', 'asc')->findAll();
     }
 
     public function getDetailUjian($id_jadwal = 0)
@@ -198,9 +209,6 @@ class m_jadwal_ujian extends Model
     public function reject()
     {
     }
-
-
-
 
     public function getJadwalPendamping()
     {

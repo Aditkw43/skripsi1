@@ -17,16 +17,19 @@ class m_cuti extends Model
     {
         // Semua damping
         if (empty($data)) {
-            return $this->findAll();
+            $get_cuti = $this->findAll();
+            return (count($get_cuti) != 0) ? $get_cuti : null;
         }
 
         // Semua pendampingan sesuai dengan id profile mahasiswa
-        return $this->builder()->select('*')->getWhere(['id_profile_mhs' => $data['id_profile_mhs']])->getResultArray();
+        $get_cuti = $this->builder()->select('*')->getWhere(['id_profile_mhs' => $data['id_profile_mhs']])->getResultArray();
+
+        return (count($get_cuti) != 0) ? $get_cuti : null;
     }
 
-    public function getDetailCuti($id_damping = null)
+    public function getDetailCuti($id_cuti = null)
     {
-        return $this->find($id_damping);
+        return $this->find($id_cuti);
     }
 
     public function getApproval()

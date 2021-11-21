@@ -31,7 +31,7 @@
         <ul class="navbar-nav flex-column" id="sideNavbar">
             <!-- Dashboard -->
             <li class="nav-item">
-                <a class="nav-link has-arrow  active " href="/index.html">
+                <a class="nav-link has-arrow  active " href="<?= in_groups('admin') ? base_url('/dashboardAdmin') : base_url('/dashboardMhs'); ?>">
                     <i class="fas fa-tachometer-alt nav-icon icon-xs me-2"></i>
                     Dashboard
                 </a>
@@ -43,36 +43,63 @@
             </li>
 
             <?php if (!in_groups('admin')) : ?>
-                <!-- Jadwal Ujian -->
+                <!-- Kelola Jadwal Ujian -->
                 <li class="nav-item">
-                    <a class="nav-link " href="<?= base_url('/viewJadwal/' . user()->username); ?>">
-                        <i class="fas fa-clipboard-list nav-icon icon-xs me-2"></i>
-                        Kelola Jadwal Ujian
+                    <a class="nav-link has-arrow  collapsed " href="#!" data-bs-toggle="collapse" data-bs-target="#kelolaJadwalUjian" aria-expanded="false" aria-controls="kelolaJadwalUjian">
+                        <i class="fas fa-clipboard-list nav-icon icon-xs me-2"></i> Kelola Jadwal Ujian
                     </a>
+
+                    <div id="kelolaJadwalUjian" class="collapse " data-bs-parent="#sideNavbar">
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link " href="<?= base_url('/viewJadwalUTS/' . user()->username); ?>"> Jadwal Ujian UTS</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link " href="<?= base_url('/viewJadwalUAS/' . user()->username); ?>">
+                                    Jadwal Ujian UAS
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </li>
 
                 <!-- Pendampingan -->
                 <li class="nav-item">
-                    <a class="nav-link has-arrow  collapsed " href="#!" data-bs-toggle="collapse" data-bs-target="#navAuthentication" aria-expanded="false" aria-controls="navAuthentication">
+                    <a class="nav-link has-arrow  collapsed " href="#!" data-bs-toggle="collapse" data-bs-target="#pendampinganUjian" aria-expanded="false" aria-controls="pendampinganUjian">
                         <i class="fas fa-calendar-week nav-icon icon-xs me-2"></i> Pendampingan Ujian
                     </a>
 
-                    <div id="navAuthentication" class="collapse " data-bs-parent="#sideNavbar">
+                    <div id="pendampinganUjian" class="collapse " data-bs-parent="#sideNavbar">
                         <ul class="nav flex-column">
                             <li class="nav-item">
-                                <a class="nav-link " href="<?= base_url('/viewDamping/' . user()->username); ?>"> List Damping</a>
+                                <a class="nav-link " href="<?= base_url('/viewDampingUTS/' . user()->username); ?>">UTS</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link " href="<?= base_url('/viewDampingUAS/' . user()->username); ?>">UAS</a>
                             </li>
                             <?php if (in_groups('madif')) : ?>
                                 <li class="nav-item">
                                     <a class="nav-link  " href="<?= base_url('/viewTidakDamping/' . user()->username); ?>"> List Tidak Didampingi</a>
                                 </li>
                             <?php endif; ?>
-                            <li class="nav-item">
-                                <a class="nav-link " href="<?= base_url('/viewLaporan/' . user()->username); ?>">
-                                    Laporan Pendampingan
-                                </a>
-                            </li>
+                        </ul>
+                    </div>
+                </li>
 
+                <!-- Laporan -->
+                <li class="nav-item">
+                    <a class="nav-link has-arrow  collapsed " href="#!" data-bs-toggle="collapse" data-bs-target="#laporan-pendampingan" aria-expanded="false" aria-controls="laporan-pendampingan">
+                        <i class="fas fa-clipboard-check nav-icon icon-xs me-2"></i> Laporan
+                    </a>
+
+                    <div id="laporan-pendampingan" class="collapse " data-bs-parent="#sideNavbar">
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link " href="<?= base_url('/viewLaporanUTS/' . user()->username); ?>"> UTS</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link " href="<?= base_url('/viewLaporanUAS/' . user()->username); ?>"> UAS</a>
+                            </li>
                         </ul>
                     </div>
                 </li>
@@ -109,14 +136,29 @@
                     <div id="navAuthentication" class="collapse " data-bs-parent="#sideNavbar">
                         <ul class="nav flex-column">
                             <li class="nav-item">
-                                <a class="nav-link " href="<?= base_url('/viewAllDamping'); ?>"> List Damping</a>
+                                <a class="nav-link " href="<?= base_url('/viewAllDampingUTS'); ?>"> UTS</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link " href="<?= base_url('/viewAllLaporan'); ?>">
-                                    Laporan Pendampingan
-                                </a>
+                                <a class="nav-link " href="<?= base_url('/viewAllDampingUAS'); ?>"> UAS</a>
                             </li>
+                        </ul>
+                    </div>
+                </li>
 
+                <!-- Laporan -->
+                <li class="nav-item">
+                    <a class="nav-link has-arrow  collapsed " href="#!" data-bs-toggle="collapse" data-bs-target="#laporan-pendampingan" aria-expanded="false" aria-controls="laporan-pendampingan">
+                        <i class="fas fa-clipboard-check nav-icon icon-xs me-2"></i> Laporan
+                    </a>
+
+                    <div id="laporan-pendampingan" class="collapse " data-bs-parent="#sideNavbar">
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link " href="<?= base_url('/viewAllLaporanUTS'); ?>"> UTS</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link " href="<?= base_url('/viewAllLaporanUAS'); ?>"> UAS</a>
+                            </li>
                         </ul>
                     </div>
                 </li>
@@ -131,13 +173,13 @@
             <?php endif; ?>
 
             <?php if (!in_groups('admin')) : ?>
+                <!-- Judul Perizinan -->
+                <li class="nav-item">
+                    <div class="navbar-heading">Perizinan</div>
+                </li>
+
                 <!-- Pengajuan Perizinan Pendamping -->
                 <?php if (in_groups('pendamping')) : ?>
-                    <!-- Judul Perizinan -->
-                    <li class="nav-item">
-                        <div class="navbar-heading">Perizinan</div>
-                    </li>
-
                     <li class="nav-item">
                         <a class="nav-link has-arrow  collapsed " href="#!" data-bs-toggle="collapse" data-bs-target="#navComponents" aria-expanded="false" aria-controls="navComponents">
                             <i class="fas fa-file-medical nav-icon icon-xs me-2"></i> Pengajuan Izin
@@ -165,7 +207,15 @@
                             Konfirmasi Pengganti
                         </a>
                     </li>
+                <?php else : ?>
+                    <li class="nav-item">
+                        <a class="nav-link " href="<?= base_url('/viewCuti/' . user()->username); ?>" aria-expanded="false">
+                            <i class="nav-icon icon-xs me-2 fas fa-envelope"></i>
+                            Izin Cuti
+                        </a>
+                    </li>
                 <?php endif; ?>
+
             <?php else : ?>
                 <!-- Judul Konfirmasi -->
                 <li class="nav-item">

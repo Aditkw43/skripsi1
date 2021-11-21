@@ -2,6 +2,8 @@
 
 namespace App\Controllers;
 
+use CodeIgniter\I18n\Time;
+use DateTime;
 use CodeIgniter\Controller;
 use CodeIgniter\HTTP\CLIRequest;
 use CodeIgniter\HTTP\IncomingRequest;
@@ -57,5 +59,9 @@ class BaseController extends Controller
 		// Object Jadwal Model
 		$this->jadwalModel = new \App\Models\jadwalModel();
 		$this->jenisDifabelModel = new \App\Models\jenisDifabelModel();
+		date_default_timezone_set('Asia/Jakarta');
+		$this->get_now = new DateTime();
+		$this->date_now = $this->get_now->format('Y-m-d');
+		$this->time_now = $this->get_now->format('h:i:s');
 	}
 }

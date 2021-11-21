@@ -159,7 +159,7 @@
 
                                                         <!-- Status -->
                                                         <?php if ($diterima['approval_admin'] === '1') : ?>
-                                                            <td style="color: green">Terverifikasi Admin</td>
+                                                            <td style="color: green">Terverifikasi</td>
                                                         <?php elseif ($diterima['approval_admin'] === '0') : ?>
                                                             <td style="color: red">Ditolak Admin</td>
                                                         <?php elseif (empty($gi['approval_admin'])) : ?>

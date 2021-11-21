@@ -57,7 +57,7 @@ class m_biodata extends Model
         $old_bio = $this->getBiodata($this->getProfileID($data['username']));
         $key_bio = ['id_profile_admin', 'id_profile_mhs', 'nickname', 'fullname', 'jenis_kelamin', 'alamat', 'nomor_hp'];
         // Id_profile tidak perlu, karena id tidak perlu di update, tapi dijadikan where
-        $key_profile_mhs = ['nim', 'fakultas', 'jurusan', 'prodi', 'semester', 'madif', 'pendamping'];
+        $key_profile_mhs = ['nim', 'fakultas', 'jurusan', 'prodi', 'semester'];
         $data_bio = [];
         $data_profile = [];
         // END 
@@ -80,16 +80,14 @@ class m_biodata extends Model
             $old_profile = model(m_profile_mhs::class);
             $old_profile = $old_profile->getProfile($data['id_profile_mhs']);
             unset($old_profile['id_profile_mhs']);
-            // END
+            // END        
 
-            // Data profile, tanpa id_profile_mhs
+            // Data profile, tanpa id_profile_mhs            
             foreach ($key_profile_mhs as $key) {
                 $data_profile[$key] = null;
                 foreach ($data as $d => $k) {
                     if ($key == 'nim') {
                         $data_profile[$key] = $data['username'];
-                    } elseif ($key == $data['role']) {
-                        $data['role'] == 'pendamping' ? $data_profile[$key] = 1 : 0;
                     } elseif ($d == $key) {
                         $data_profile[$key] = $data[$key];
                     }
@@ -104,11 +102,20 @@ class m_biodata extends Model
                 $update_jenis_madif = model(m_profile_mhs::class);
                 $old_jenis_madif = $update_jenis_madif->getJenisMadif($data['id_profile_mhs']);
                 if (!($data_jenis_madif['id_jenis_difabel'] == $old_jenis_madif['id_jenis_difabel'])) {
+                    if (isset($data['user_management'])) {
+                        $data_jenis_madif['approval'] = true;
+                    }
                     $update_jenis_madif = $update_jenis_madif->updateJenisDifabel($data_jenis_madif);
                     $cek_jenis_madif = false;
                 }
+                $data_profile['madif'] = 1;
+                $data_profile['pendamping'] = 0;
+            } else {
+                $data_profile['pendamping'] = 1;
+                $data_profile['madif'] = 0;
             }
 
+            // Jika tidak ada perubahan
             if ($old_bio == $data_bio && $old_profile == $data_profile && $cek_jenis_madif) return false;
 
             if (!($old_profile == $data_profile)) {

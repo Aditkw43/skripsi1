@@ -79,12 +79,20 @@ class c_profile_pendamping extends BaseController
     // Menyimpan skill pendamping yang ditambahkan
     public function saveSkill()
     {
+        $ref_pendampingan = $this->request->getVar('ref_pendampingan');
+        $prioritas = $this->request->getVar('prioritas');
+        $user_management = $this->request->getVar('user_management');
         $data = [
             'id_profile_pendamping' => $this->request->getVar('id_profile_pendamping'),
-            'ref_pendampingan' => $this->request->getVar('ref_pendampingan'),
-            'prioritas' => $this->request->getVar('prioritas'),
+            'ref_pendampingan' => $ref_pendampingan,
+            'prioritas' => $prioritas,
+            'approval' => ($user_management) ? true : false,
         ];
 
+        if ($ref_pendampingan == null || $prioritas == 0) {
+            session()->setFlashdata('form_tidak_lengkap', 'Form tambah skill tidak lengkap');
+            return redirect()->back();
+        }
         // Tambah Skill
         $validasi = $this->profile->addSkillPendamping($data);
 
@@ -113,7 +121,6 @@ class c_profile_pendamping extends BaseController
 
         // Edit skill
         $validasi = $this->profile->editSkillPendamping($data);
-
         $nama_skill = $this->profile->getKategoriDifabel($data['ref_pendampingan']);
 
         if (!$validasi) {
