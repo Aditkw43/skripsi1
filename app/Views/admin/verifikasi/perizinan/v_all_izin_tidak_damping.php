@@ -84,7 +84,7 @@
                                                         <!-- Status -->
                                                         <td>
                                                             <a href="<?= base_url('c_perizinan/approval_izin/admin'); ?>/<?= $approve1['id_izin'], '/terima/' . $approve1['id_damping'] . '/' . $approve1['pendamping_baru']['id_profile_mhs']; ?>" class="btn btn-success btn-sm my-1">Terima</a>
-                                                            <a href="<?= base_url('c_perizinan/approval_izin/admin'); ?>/<?= $approve1['id_izin'], '/tolak'; ?>" class="btn btn-danger btn-sm">Tolak</a>
+                                                            <a href="<?= base_url('c_perizinan/approval_izin/admin'); ?>/<?= $approve1['id_izin'], '/tolak/' . $approve1['id_damping'] . '/' . $approve1['pendamping_baru']['id_profile_mhs']; ?>" class="btn btn-danger btn-sm">Tolak</a>
                                                         </td>
 
                                                         <!-- Dokumen -->

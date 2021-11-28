@@ -556,8 +556,8 @@
                                                     <td style="color:red">Ditolak</td>
                                                 <?php else : ?>
                                                     <td>
-                                                        <a href="<?= base_url('c_user/approval_skill/' . $key1['id_profile_mhs'] . '/' . $s1['id'] . '/' . 'terima'); ?>" class="btn btn-success btn-sm my-1"><i class="fas fa-check"></i></a>
-                                                        <a href="<?= base_url('c_user/approval_skill/' . $key1['id_profile_mhs'] . '/' . $s1['id'] . '/' . 'tolak'); ?>" class="btn btn-danger btn-sm"><i class="fas fa-times"></i></a>
+                                                        <a href="<?= base_url('c_user/approval_skill/' . $key1['id_profile_mhs'] . '/terima/' . $s1['id']); ?>" class="btn btn-success btn-sm my-1"><i class="fas fa-check"></i></a>
+                                                        <a href="<?= base_url('c_user/approval_skill/' . $key1['id_profile_mhs'] . '/tolak/' . $s1['id']); ?>" class="btn btn-danger btn-sm"><i class="fas fa-times"></i></a>
                                                     </td>
                                                 <?php endif; ?>
                                                 <td>

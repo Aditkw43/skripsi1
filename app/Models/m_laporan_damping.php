@@ -34,7 +34,7 @@ class m_laporan_damping extends Model
         } else {
             $query = $query->where('id_profile_pendamping', $data['id_profile_mhs']);
         }
-        return $query->join('laporan_damping', 'damping_ujian.id_damping=laporan_damping.id_damping')->get()->getResultArray();
+        return $query->join('laporan_damping', 'damping_ujian.id_damping=laporan_damping.id_damping')->where('madif_rating!=', null)->where('pendamping_rating!=', null)->get()->getResultArray();
     }
 
     public function getDetailLaporan($id_laporan_damping = null)
@@ -45,18 +45,18 @@ class m_laporan_damping extends Model
     public function getLaporanUTS($data = null)
     {
         if (empty($data)) {
-            $get_laporan = $this->builder()->join('damping_ujian', 'damping_ujian.id_damping = laporan_damping.id_damping')->getWhere(['damping_ujian.jenis_ujian' => 'UTS'])->getResultArray();
+            $get_laporan = $this->builder()->join('damping_ujian', 'damping_ujian.id_damping = laporan_damping.id_damping')->where('madif_rating!=', null)->where('pendamping_rating!=', null)->getWhere(['damping_ujian.jenis_ujian' => 'UTS'])->getResultArray();
 
             return (isset($get_laporan)) ? $get_laporan : null;
         }
 
         if ($data['pendamping'] == 1) {
-            $get_damping = $this->builder()->join('damping_ujian', 'damping_ujian.id_damping = laporan_damping.id_damping')->getWhere(['id_profile_pendamping' => $data['id_profile_mhs'], 'damping_ujian.jenis_ujian' => 'UTS'])->getResultArray();
+            $get_damping = $this->builder()->join('damping_ujian', 'damping_ujian.id_damping = laporan_damping.id_damping')->where('madif_rating!=', null)->where('pendamping_rating!=', null)->getWhere(['id_profile_pendamping' => $data['id_profile_mhs'], 'damping_ujian.jenis_ujian' => 'UTS'])->getResultArray();
 
             return (isset($get_damping)) ? $get_damping : null;
         }
 
-        $get_damping = $this->builder()->join('damping_ujian', 'damping_ujian.id_damping = laporan_damping.id_damping')->getWhere(['id_profile_madif' => $data['id_profile_mhs'], 'damping_ujian.jenis_ujian' => 'UTS'])->getResultArray();
+        $get_damping = $this->builder()->join('damping_ujian', 'damping_ujian.id_damping = laporan_damping.id_damping')->where('madif_rating!=', null)->where('pendamping_rating!=', null)->getWhere(['id_profile_madif' => $data['id_profile_mhs'], 'damping_ujian.jenis_ujian' => 'UTS'])->getResultArray();
 
         return (count($get_damping) == 0) ? null : $get_damping;
     }
@@ -64,18 +64,18 @@ class m_laporan_damping extends Model
     public function getLaporanUAS($data = null)
     {
         if (empty($data)) {
-            $get_laporan = $this->builder()->join('damping_ujian', 'damping_ujian.id_damping = laporan_damping.id_damping')->getWhere(['damping_ujian.jenis_ujian' => 'UAS'])->getResultArray();
+            $get_laporan = $this->builder()->join('damping_ujian', 'damping_ujian.id_damping = laporan_damping.id_damping')->where('madif_rating!=', null)->where('pendamping_rating!=', null)->getWhere(['damping_ujian.jenis_ujian' => 'UAS'])->getResultArray();
 
             return (isset($get_laporan)) ? $get_laporan : null;
         }
 
         if ($data['pendamping'] == 1) {
-            $get_damping = $this->builder()->join('damping_ujian', 'damping_ujian.id_damping = laporan_damping.id_damping')->getWhere(['id_profile_pendamping' => $data['id_profile_mhs'], 'damping_ujian.jenis_ujian' => 'UAS'])->getResultArray();
+            $get_damping = $this->builder()->join('damping_ujian', 'damping_ujian.id_damping = laporan_damping.id_damping')->where('madif_rating!=', null)->where('pendamping_rating!=', null)->getWhere(['id_profile_pendamping' => $data['id_profile_mhs'], 'damping_ujian.jenis_ujian' => 'UAS'])->getResultArray();
 
             return (isset($get_damping)) ? $get_damping : null;
         }
 
-        $get_damping = $this->builder()->join('damping_ujian', 'damping_ujian.id_damping = laporan_damping.id_damping')->getWhere(['id_profile_madif' => $data['id_profile_mhs'], 'damping_ujian.jenis_ujian' => 'UAS'])->getResultArray();
+        $get_damping = $this->builder()->join('damping_ujian', 'damping_ujian.id_damping = laporan_damping.id_damping')->where('madif_rating!=', null)->where('pendamping_rating!=', null)->getWhere(['id_profile_madif' => $data['id_profile_mhs'], 'damping_ujian.jenis_ujian' => 'UAS'])->getResultArray();
 
         return (count($get_damping) == 0) ? null : $get_damping;
     }

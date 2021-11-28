@@ -99,7 +99,7 @@
                                             <?php $i = 1 ?>
                                             <?php foreach ($hasil_jadwal_damping as $hjd) : ?>
                                                 <?php if (!empty($hjd['biodata_pendamping'])) : ?>
-                                                    <?php if (empty($hjd['status_damping'])) : ?>
+                                                    <?php if (empty($hjd['status_damping']) || $hjd['status_damping'] == 'izin_verifikasi_pendamping' || $hjd['status_damping'] == 'izin_verifikasi_admin') : ?>
 
                                                         <tr class="align-middle" style="color:<?= (empty($hjd['biodata_pendamping'])) ? 'grey' : '' ?>">
 
@@ -132,90 +132,31 @@
 
                                                             <!-- Status -->
                                                             <?php if ($profile_mhs['madif'] == 1) : ?>
-
-                                                                <!-- Jika Ada Pendamping -->
-                                                                <?php if (!empty($hjd['biodata_pendamping'])) : ?>
-
-                                                                    <?php if (empty($hjd['status_damping'])) : ?>
-                                                                        <td style="color: rgba(237, 136, 0, 1);">
-                                                                            Menunggu Konfirmasi Pendamping
-                                                                        </td>
-                                                                    <?php elseif ($hjd['status_damping'] == 'presensi_hadir') : ?>
-                                                                        <td style="color: green;">
-                                                                            Menunggu Presensi
-                                                                        </td>
-                                                                    <?php elseif ($hjd['status_damping'] == 'konfirmasi_presensi_hadir') : ?>
-                                                                        <td style="color:red">
-                                                                            Lakukan Konfirmasi Presensi
-                                                                        </td>
-                                                                    <?php elseif ($hjd['status_damping'] == 'pendampingan') : ?>
-                                                                        <td style="color:blue">
-                                                                            Lakukan Konfirmasi Presensi Jika<br>Pendampingan Telah Selesai
-                                                                        </td>
-                                                                    <?php elseif ($hjd['status_damping'] == 'laporan') : ?>
-                                                                        <td style="color: red;">
-                                                                            Lakukan Pengisian Review Pendampingan
-                                                                        </td>
-                                                                    <?php elseif ($hjd['status_damping'] == 'madif_review') : ?>
-                                                                        <td style="color: red;">
-                                                                            Lakukan Pengisian Review Pendampingan
-                                                                        </td>
-                                                                    <?php elseif ($hjd['status_damping'] == 'pendamping_review') : ?>
-                                                                        <td style="color: green;">
-                                                                            Menunggu Laporan Review dari Pendamping
-                                                                        </td>
-                                                                    <?php elseif ($hjd['status_damping'] == 'selesai') : ?>
-                                                                        <td style="color: green;">
-                                                                            Pendampingan Selesai
-                                                                        </td>
-                                                                    <?php endif; ?>
-
-
-                                                                    <!-- Jika Tidak Ada Pendamping -->
+                                                                <?php if (empty($hjd['status_damping'])) : ?>
+                                                                    <td style="color: rgba(237, 136, 0, 1);">
+                                                                        Menunggu Konfirmasi Pendamping
+                                                                    </td>
                                                                 <?php else : ?>
-                                                                    <td>
-                                                                        Tidak Ada Pendamping
+                                                                    <td style="color: blue;">
+                                                                        Menunggu Pencarian Pendamping Pengganti
                                                                     </td>
                                                                 <?php endif; ?>
-
                                                             <?php else : ?>
-
                                                                 <!-- Red: Ada task, green: menunggu task atau selesai -->
                                                                 <?php if (empty($hjd['status_damping'])) : ?>
-                                                                    <td style="color: <?= (empty($hjd['status_damping'])) ? 'red' : '' ?>;">
+                                                                    <td>
                                                                         <a href="<?= base_url('changeStatus/presensi_hadir'); ?>/<?= $hjd['id_damping']; ?>" class="btn btn-success btn-sm">Confirm</a>
-                                                                        <a href="<?= base_url('IzinTidakDamping'); ?>/<?= $hjd['id_damping']; ?>" class="btn btn-danger btn-sm">Izin</a>
+                                                                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#izinTidakDamping<?= $hjd['id_damping']; ?>" ?>Izin</button>
                                                                     </td>
-                                                                <?php elseif ($hjd['status_damping'] == 'presensi_hadir') : ?>
-                                                                    <td style="color:red">
-                                                                        Lakukan Presensi Kehadiran
+                                                                <?php elseif ($hjd['status_damping'] == 'izin_verifikasi_pendamping') : ?>
+                                                                    <td style="color: blue">
+                                                                        Menunggu verifikasi izin pengganti
                                                                     </td>
-                                                                <?php elseif ($hjd['status_damping'] == 'konfirmasi_presensi_hadir') : ?>
-                                                                    <td style="color: green;">
-                                                                        Menunggu Konfirmasi Presensi
-                                                                    </td>
-                                                                <?php elseif ($hjd['status_damping'] == 'pendampingan') : ?>
-                                                                    <td style="color: blue;">
-                                                                        Lakukan Konfirmasi Presensi Jika<br>Pendampingan Telah Selesai
-                                                                    </td>
-                                                                <?php elseif ($hjd['status_damping'] == 'laporan') : ?>
-                                                                    <td style="color: red;">
-                                                                        Lakukan Pengisian Review Pendampingan
-                                                                    </td>
-                                                                <?php elseif ($hjd['status_damping'] == 'pendamping_review') : ?>
-                                                                    <td style="color: red;">
-                                                                        Lakukan Pengisian Review Pendampingan
-                                                                    </td>
-                                                                <?php elseif ($hjd['status_damping'] == 'madif_review') : ?>
-                                                                    <td style="color: green;">
-                                                                        Menunggu Laporan Review dari Madif
-                                                                    </td>
-                                                                <?php elseif ($hjd['status_damping'] == 'selesai') : ?>
-                                                                    <td style="color: green;">
-                                                                        Pendampingan Selesai
+                                                                <?php elseif ($hjd['status_damping'] == 'izin_verifikasi_pendamping') : ?>
+                                                                    <td style="color: blue">
+                                                                        Menunggu verifikasi izin admin
                                                                     </td>
                                                                 <?php endif; ?>
-
                                                             <?php endif; ?>
 
                                                             <!-- Aksi -->
@@ -269,128 +210,80 @@
                                         </thead>
 
                                         <tbody class="table-light">
+                                            <?php $i = 1 ?>
+                                            <?php foreach ($hasil_jadwal_damping as $presensi) : ?>
+                                                <?php if (!empty($presensi['biodata_pendamping'])) : ?>
 
-                                            <?php if (!empty($data)) : ?>
-                                                <?php $i = 1 ?>
-                                                <?php foreach ($hasil_jadwal_damping as $presensi) : ?>
-                                                    <?php if (!empty($presensi['biodata_pendamping'])) : ?>
+                                                    <?php
+                                                    $presensi_hadir = ($presensi['status_damping'] == 'presensi_hadir');
+                                                    $konfirmasi_presensi = ($presensi['status_damping'] == 'konfirmasi_presensi_hadir');
+                                                    $pendampingan = ($presensi['status_damping'] == 'pendampingan');
+                                                    ?>
 
-                                                        <?php
-                                                        $presensi_hadir = ($presensi['status_damping'] == 'presensi_hadir');
-                                                        $konfirmasi_presensi = ($presensi['status_damping'] == 'konfirmasi_presensi_hadir');
-                                                        $pendampingan = ($presensi['status_damping'] == 'pendampingan');
-                                                        ?>
+                                                    <?php if ($presensi_hadir || $konfirmasi_presensi || $pendampingan) : ?>
 
-                                                        <?php if ($presensi_hadir || $konfirmasi_presensi || $pendampingan) : ?>
+                                                        <tr class="align-middle" style="color:<?= (empty($presensi['biodata_pendamping'])) ? 'grey' : '' ?>">
 
-                                                            <tr class="align-middle" style="color:<?= (empty($presensi['biodata_pendamping'])) ? 'grey' : '' ?>">
+                                                            <!-- Id Pendampingan -->
+                                                            <input type="hidden" name="id_damping" value="<?= $presensi['id_damping']; ?>">
 
-                                                                <!-- Id Pendampingan -->
-                                                                <input type="hidden" name="id_damping" value="<?= $presensi['id_damping']; ?>">
+                                                            <!-- Nomor -->
+                                                            <th scope="row"><?= $i; ?></th>
 
-                                                                <!-- Nomor -->
-                                                                <th scope="row"><?= $i; ?></th>
+                                                            <!-- Tanggal Ujian -->
+                                                            <td><?= date('d, M Y', strtotime($presensi['jadwal_ujian']['tanggal_ujian'])); ?></td>
 
-                                                                <!-- Tanggal Ujian -->
-                                                                <td><?= date('d, M Y', strtotime($presensi['jadwal_ujian']['tanggal_ujian'])); ?></td>
+                                                            <!-- Mata Kuliah -->
+                                                            <td><?= $presensi['jadwal_ujian']['mata_kuliah']; ?></td>
 
-                                                                <!-- Mata Kuliah -->
-                                                                <td><?= $presensi['jadwal_ujian']['mata_kuliah']; ?></td>
+                                                            <!-- Nama madif dan pendamping -->
+                                                            <?php if ($profile_mhs['madif'] == 1) : ?>
 
-                                                                <!-- Nama madif dan pendamping -->
-                                                                <?php if ($profile_mhs['madif'] == 1) : ?>
-
-                                                                    <!-- Nama pendamping -->
-                                                                    <?php if (!empty($presensi['biodata_pendamping'])) : ?>
-                                                                        <td><?= $presensi['biodata_pendamping']['nickname']; ?></td>
-                                                                    <?php else : ?>
-                                                                        <td>-</td>
-                                                                    <?php endif; ?>
-
+                                                                <!-- Nama pendamping -->
+                                                                <?php if (!empty($presensi['biodata_pendamping'])) : ?>
+                                                                    <td><?= $presensi['biodata_pendamping']['nickname']; ?></td>
                                                                 <?php else : ?>
-                                                                    <!-- Nama Madif -->
-                                                                    <td><?= $presensi['biodata_madif']['nickname']; ?> (<?= $presensi['biodata_madif']['jenis_madif']; ?>)</td>
+                                                                    <td>-</td>
                                                                 <?php endif; ?>
 
-                                                                <!-- Status -->
-                                                                <?php if ($profile_mhs['madif'] == 1) : ?>
+                                                            <?php else : ?>
+                                                                <!-- Nama Madif -->
+                                                                <td><?= $presensi['biodata_madif']['nickname']; ?> (<?= $presensi['biodata_madif']['jenis_madif']; ?>)</td>
+                                                            <?php endif; ?>
 
-                                                                    <!-- Jika Ada Pendamping -->
-                                                                    <?php if (!empty($presensi['biodata_pendamping'])) : ?>
+                                                            <!-- Status -->
+                                                            <?php if ($profile_mhs['madif'] == 1) : ?>
 
-                                                                        <?php if (empty($presensi['status_damping'])) : ?>
-                                                                            <td style="color: rgba(237, 136, 0, 1);">
-                                                                                Menunggu Konfirmasi Pendamping
-                                                                            </td>
-                                                                        <?php elseif ($presensi_hadir) : ?>
-                                                                            <td style="color: green;">
-                                                                                Menunggu Presensi
-                                                                            </td>
-                                                                        <?php elseif ($konfirmasi_presensi) : ?>
-                                                                            <td style="color:red">
-                                                                                Lakukan Konfirmasi Presensi
-                                                                            </td>
-                                                                        <?php elseif ($pendampingan) : ?>
-                                                                            <td style="color:blue">
-                                                                                Lakukan Konfirmasi Presensi Jika<br>Pendampingan Telah Selesai
-                                                                            </td>
-                                                                        <?php elseif ($presensi['status_damping'] == 'laporan') : ?>
-                                                                            <td style="color: red;">
-                                                                                Lakukan Pengisian Review Pendampingan
-                                                                            </td>
-                                                                        <?php elseif ($presensi['status_damping'] == 'madif_review') : ?>
-                                                                            <td style="color: red;">
-                                                                                Lakukan Pengisian Review Pendampingan
-                                                                            </td>
-                                                                        <?php elseif ($presensi['status_damping'] == 'pendamping_review') : ?>
-                                                                            <td style="color: green;">
-                                                                                Menunggu Laporan Review dari Pendamping
-                                                                            </td>
-                                                                        <?php elseif ($presensi['status_damping'] == 'selesai') : ?>
-                                                                            <td style="color: green;">
-                                                                                Pendampingan Selesai
-                                                                            </td>
-                                                                        <?php endif; ?>
+                                                                <!-- Jika Ada Pendamping -->
+                                                                <?php if (!empty($presensi['biodata_pendamping'])) : ?>
 
-
-                                                                        <!-- Jika Tidak Ada Pendamping -->
-                                                                    <?php else : ?>
-                                                                        <td>
-                                                                            Tidak Ada Pendamping
-                                                                        </td>
-                                                                    <?php endif; ?>
-
-                                                                <?php else : ?>
-
-                                                                    <!-- Red: Ada task, green: menunggu task atau selesai -->
                                                                     <?php if (empty($presensi['status_damping'])) : ?>
-                                                                        <td style="color: <?= (empty($presensi['status_damping'])) ? 'red' : '' ?>;">
-                                                                            <a href="<?= base_url('konfirmasiDamping'); ?>/<?= $presensi['id_damping']; ?>" class="btn btn-success btn-sm">Confirm</a>
-                                                                            <a href="<?= base_url('IzinTidakDamping'); ?>/<?= $presensi['id_damping']; ?>" class="btn btn-danger btn-sm">Izin</a>
+                                                                        <td style="color: rgba(237, 136, 0, 1);">
+                                                                            Menunggu Konfirmasi Pendamping
                                                                         </td>
                                                                     <?php elseif ($presensi_hadir) : ?>
-                                                                        <td style="color:red">
-                                                                            Lakukan Presensi Kehadiran
+                                                                        <td style="color: green;">
+                                                                            Menunggu Presensi
                                                                         </td>
                                                                     <?php elseif ($konfirmasi_presensi) : ?>
-                                                                        <td style="color: green;">
-                                                                            Menunggu Konfirmasi Presensi
+                                                                        <td style="color:red">
+                                                                            Lakukan Konfirmasi Presensi
                                                                         </td>
                                                                     <?php elseif ($pendampingan) : ?>
-                                                                        <td style="color: blue;">
+                                                                        <td style="color:blue">
                                                                             Lakukan Konfirmasi Presensi Jika<br>Pendampingan Telah Selesai
                                                                         </td>
                                                                     <?php elseif ($presensi['status_damping'] == 'laporan') : ?>
                                                                         <td style="color: red;">
                                                                             Lakukan Pengisian Review Pendampingan
                                                                         </td>
-                                                                    <?php elseif ($presensi['status_damping'] == 'pendamping_review') : ?>
+                                                                    <?php elseif ($presensi['status_damping'] == 'madif_review') : ?>
                                                                         <td style="color: red;">
                                                                             Lakukan Pengisian Review Pendampingan
                                                                         </td>
-                                                                    <?php elseif ($presensi['status_damping'] == 'madif_review') : ?>
+                                                                    <?php elseif ($presensi['status_damping'] == 'pendamping_review') : ?>
                                                                         <td style="color: green;">
-                                                                            Menunggu Laporan Review dari Madif
+                                                                            Menunggu Laporan Review dari Pendamping
                                                                         </td>
                                                                     <?php elseif ($presensi['status_damping'] == 'selesai') : ?>
                                                                         <td style="color: green;">
@@ -398,36 +291,80 @@
                                                                         </td>
                                                                     <?php endif; ?>
 
+
+                                                                    <!-- Jika Tidak Ada Pendamping -->
+                                                                <?php else : ?>
+                                                                    <td>
+                                                                        Tidak Ada Pendamping
+                                                                    </td>
                                                                 <?php endif; ?>
 
-                                                                <!-- Aksi -->
-                                                                <td>
-                                                                    <button type="button" class="btn btn-warning btn-sm editJadwal my-1" data-bs-toggle="modal" data-bs-target="#jadwalDamping<?= $presensi['id_damping']; ?>" ?>
-                                                                        Detail
-                                                                    </button>
+                                                            <?php else : ?>
 
-                                                                    <?php if (!empty($presensi['biodata_pendamping'])) : ?>
-                                                                        <?php if (isset($presensi['profile_mhs']['madif'])) : ?>
-                                                                            <button type="button" class="btn btn-primary btn-sm editJadwal" data-bs-toggle="modal" data-bs-target="#profile<?= $presensi['biodata_pendamping']['id_profile_mhs']; ?>" ?>
-                                                                                Profile
-                                                                            </button>
-                                                                        <?php else : ?>
-                                                                            <button type="button" class="btn btn-primary btn-sm editJadwal" data-bs-toggle="modal" data-bs-target="#profile<?= $presensi['biodata_madif']['id_profile_mhs']; ?>" ?>
-                                                                                Profile
-                                                                            </button>
-                                                                        <?php endif; ?>
+                                                                <!-- Red: Ada task, green: menunggu task atau selesai -->
+                                                                <?php if (empty($presensi['status_damping'])) : ?>
+                                                                    <td style="color: <?= (empty($presensi['status_damping'])) ? 'red' : '' ?>;">
+                                                                        <a href="<?= base_url('konfirmasiDamping'); ?>/<?= $presensi['id_damping']; ?>" class="btn btn-success btn-sm">Confirm</a>
+                                                                        <a href="<?= base_url('IzinTidakDamping'); ?>/<?= $presensi['id_damping']; ?>" class="btn btn-danger btn-sm">Izin</a>
+                                                                    </td>
+                                                                <?php elseif ($presensi_hadir) : ?>
+                                                                    <td style="color:red">
+                                                                        Lakukan Presensi Kehadiran
+                                                                    </td>
+                                                                <?php elseif ($konfirmasi_presensi) : ?>
+                                                                    <td style="color: green;">
+                                                                        Menunggu Konfirmasi Presensi
+                                                                    </td>
+                                                                <?php elseif ($pendampingan) : ?>
+                                                                    <td style="color: blue;">
+                                                                        Lakukan Konfirmasi Presensi Jika<br>Pendampingan Telah Selesai
+                                                                    </td>
+                                                                <?php elseif ($presensi['status_damping'] == 'laporan') : ?>
+                                                                    <td style="color: red;">
+                                                                        Lakukan Pengisian Review Pendampingan
+                                                                    </td>
+                                                                <?php elseif ($presensi['status_damping'] == 'pendamping_review') : ?>
+                                                                    <td style="color: red;">
+                                                                        Lakukan Pengisian Review Pendampingan
+                                                                    </td>
+                                                                <?php elseif ($presensi['status_damping'] == 'madif_review') : ?>
+                                                                    <td style="color: green;">
+                                                                        Menunggu Laporan Review dari Madif
+                                                                    </td>
+                                                                <?php elseif ($presensi['status_damping'] == 'selesai') : ?>
+                                                                    <td style="color: green;">
+                                                                        Pendampingan Selesai
+                                                                    </td>
+                                                                <?php endif; ?>
+
+                                                            <?php endif; ?>
+
+                                                            <!-- Aksi -->
+                                                            <td>
+                                                                <button type="button" class="btn btn-warning btn-sm editJadwal my-1" data-bs-toggle="modal" data-bs-target="#jadwalDamping<?= $presensi['id_damping']; ?>" ?>
+                                                                    Detail
+                                                                </button>
+
+                                                                <?php if (!empty($presensi['biodata_pendamping'])) : ?>
+                                                                    <?php if (isset($presensi['profile_mhs']['madif'])) : ?>
+                                                                        <button type="button" class="btn btn-primary btn-sm editJadwal" data-bs-toggle="modal" data-bs-target="#profile<?= $presensi['biodata_pendamping']['id_profile_mhs']; ?>" ?>
+                                                                            Profile
+                                                                        </button>
+                                                                    <?php else : ?>
+                                                                        <button type="button" class="btn btn-primary btn-sm editJadwal" data-bs-toggle="modal" data-bs-target="#profile<?= $presensi['biodata_madif']['id_profile_mhs']; ?>" ?>
+                                                                            Profile
+                                                                        </button>
                                                                     <?php endif; ?>
-                                                                </td>
+                                                                <?php endif; ?>
+                                                            </td>
 
-                                                            </tr>
+                                                        </tr>
 
-                                                            <?php $i++; ?>
-                                                        <?php endif; ?>
-
+                                                        <?php $i++; ?>
                                                     <?php endif; ?>
-                                                <?php endforeach; ?>
-                                            <?php endif; ?>
 
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
                                         </tbody>
 
                                     </table>
@@ -455,128 +392,80 @@
 
                                         </thead>
                                         <tbody class="table-light">
+                                            <?php $i = 1 ?>
+                                            <?php foreach ($hasil_jadwal_damping as $evaluasi) : ?>
+                                                <?php if (!empty($evaluasi['biodata_pendamping'])) : ?>
 
-                                            <?php if (!empty($data)) : ?>
-                                                <?php $i = 1 ?>
-                                                <?php foreach ($hasil_jadwal_damping as $evaluasi) : ?>
-                                                    <?php if (!empty($evaluasi['biodata_pendamping'])) : ?>
+                                                    <?php
+                                                    $laporan = ($evaluasi['status_damping'] == 'laporan');
+                                                    $madif_review = ($evaluasi['status_damping'] == 'madif_review');
+                                                    $pendamping_review = ($evaluasi['status_damping'] == 'pendamping_review');
+                                                    ?>
 
-                                                        <?php
-                                                        $laporan = ($evaluasi['status_damping'] == 'laporan');
-                                                        $madif_review = ($evaluasi['status_damping'] == 'madif_review');
-                                                        $pendamping_review = ($evaluasi['status_damping'] == 'pendamping_review');
-                                                        ?>
+                                                    <?php if ($laporan || $madif_review || $pendamping_review) : ?>
 
-                                                        <?php if ($laporan || $madif_review || $pendamping_review) : ?>
+                                                        <tr class="align-middle" style="color:<?= (empty($evaluasi['biodata_pendamping'])) ? 'grey' : '' ?>">
 
-                                                            <tr class="align-middle" style="color:<?= (empty($evaluasi['biodata_pendamping'])) ? 'grey' : '' ?>">
+                                                            <!-- Id Pendampingan -->
+                                                            <input type="hidden" name="id_damping" value="<?= $evaluasi['id_damping']; ?>">
 
-                                                                <!-- Id Pendampingan -->
-                                                                <input type="hidden" name="id_damping" value="<?= $evaluasi['id_damping']; ?>">
+                                                            <!-- Nomor -->
+                                                            <th scope="row"><?= $i; ?></th>
 
-                                                                <!-- Nomor -->
-                                                                <th scope="row"><?= $i; ?></th>
+                                                            <!-- Tanggal Ujian -->
+                                                            <td><?= date('d, M Y', strtotime($evaluasi['jadwal_ujian']['tanggal_ujian'])); ?></td>
 
-                                                                <!-- Tanggal Ujian -->
-                                                                <td><?= date('d, M Y', strtotime($evaluasi['jadwal_ujian']['tanggal_ujian'])); ?></td>
+                                                            <!-- Mata Kuliah -->
+                                                            <td><?= $evaluasi['jadwal_ujian']['mata_kuliah']; ?></td>
 
-                                                                <!-- Mata Kuliah -->
-                                                                <td><?= $evaluasi['jadwal_ujian']['mata_kuliah']; ?></td>
+                                                            <!-- Nama madif dan pendamping -->
+                                                            <?php if ($profile_mhs['madif'] == 1) : ?>
 
-                                                                <!-- Nama madif dan pendamping -->
-                                                                <?php if ($profile_mhs['madif'] == 1) : ?>
-
-                                                                    <!-- Nama pendamping -->
-                                                                    <?php if (!empty($evaluasi['biodata_pendamping'])) : ?>
-                                                                        <td><?= $evaluasi['biodata_pendamping']['nickname']; ?></td>
-                                                                    <?php else : ?>
-                                                                        <td>-</td>
-                                                                    <?php endif; ?>
-
+                                                                <!-- Nama pendamping -->
+                                                                <?php if (!empty($evaluasi['biodata_pendamping'])) : ?>
+                                                                    <td><?= $evaluasi['biodata_pendamping']['nickname']; ?></td>
                                                                 <?php else : ?>
-                                                                    <!-- Nama Madif -->
-                                                                    <td><?= $evaluasi['biodata_madif']['nickname']; ?> (<?= $evaluasi['biodata_madif']['jenis_madif']; ?>)</td>
+                                                                    <td>-</td>
                                                                 <?php endif; ?>
 
-                                                                <!-- Status -->
-                                                                <?php if ($profile_mhs['madif'] == 1) : ?>
+                                                            <?php else : ?>
+                                                                <!-- Nama Madif -->
+                                                                <td><?= $evaluasi['biodata_madif']['nickname']; ?> (<?= $evaluasi['biodata_madif']['jenis_madif']; ?>)</td>
+                                                            <?php endif; ?>
 
-                                                                    <!-- Jika Ada Pendamping -->
-                                                                    <?php if (!empty($evaluasi['biodata_pendamping'])) : ?>
+                                                            <!-- Status -->
+                                                            <?php if ($profile_mhs['madif'] == 1) : ?>
 
-                                                                        <?php if (empty($evaluasi['status_damping'])) : ?>
-                                                                            <td style="color: rgba(237, 136, 0, 1);">
-                                                                                Menunggu Konfirmasi Pendamping
-                                                                            </td>
-                                                                        <?php elseif ($evaluasi['status_damping'] == 'presensi_hadir') : ?>
-                                                                            <td style="color: green;">
-                                                                                Menunggu Presensi
-                                                                            </td>
-                                                                        <?php elseif ($evaluasi['status_damping'] == 'konfirmasi_presensi_hadir') : ?>
-                                                                            <td style="color:red">
-                                                                                Lakukan Konfirmasi Presensi
-                                                                            </td>
-                                                                        <?php elseif ($evaluasi['status_damping'] == 'pendampingan') : ?>
-                                                                            <td style="color:blue">
-                                                                                Lakukan Konfirmasi Selesai Pendampingan
-                                                                            </td>
-                                                                        <?php elseif ($evaluasi['status_damping'] == 'laporan') : ?>
-                                                                            <td style="color: red;">
-                                                                                Lakukan Pengisian Evaluasi Pendampingan
-                                                                            </td>
-                                                                        <?php elseif ($evaluasi['status_damping'] == 'madif_review') : ?>
-                                                                            <td style="color: red;">
-                                                                                Lakukan Pengisian Evaluasi Pendampingan
-                                                                            </td>
-                                                                        <?php elseif ($evaluasi['status_damping'] == 'pendamping_review') : ?>
-                                                                            <td style="color: green;">
-                                                                                Menunggu Laporan Evaluasi dari Pendamping
-                                                                            </td>
-                                                                        <?php elseif ($evaluasi['status_damping'] == 'selesai') : ?>
-                                                                            <td style="color: green;">
-                                                                                Pendampingan Selesai
-                                                                            </td>
-                                                                        <?php endif; ?>
+                                                                <!-- Jika Ada Pendamping -->
+                                                                <?php if (!empty($evaluasi['biodata_pendamping'])) : ?>
 
-
-                                                                        <!-- Jika Tidak Ada Pendamping -->
-                                                                    <?php else : ?>
-                                                                        <td>
-                                                                            Tidak Ada Pendamping
-                                                                        </td>
-                                                                    <?php endif; ?>
-
-                                                                <?php else : ?>
-
-                                                                    <!-- Red: Ada task, green: menunggu task atau selesai -->
                                                                     <?php if (empty($evaluasi['status_damping'])) : ?>
-                                                                        <td style="color: <?= (empty($evaluasi['status_damping'])) ? 'red' : '' ?>;">
-                                                                            <a href="<?= base_url('konfirmasiDamping'); ?>/<?= $evaluasi['id_damping']; ?>" class="btn btn-success btn-sm">Confirm</a>
-                                                                            <a href="<?= base_url('IzinTidakDamping'); ?>/<?= $evaluasi['id_damping']; ?>" class="btn btn-danger btn-sm">Izin</a>
+                                                                        <td style="color: rgba(237, 136, 0, 1);">
+                                                                            Menunggu Konfirmasi Pendamping
                                                                         </td>
                                                                     <?php elseif ($evaluasi['status_damping'] == 'presensi_hadir') : ?>
-                                                                        <td style="color:red">
-                                                                            Lakukan Presensi Kehadiran
+                                                                        <td style="color: green;">
+                                                                            Menunggu Presensi
                                                                         </td>
                                                                     <?php elseif ($evaluasi['status_damping'] == 'konfirmasi_presensi_hadir') : ?>
-                                                                        <td style="color: green;">
-                                                                            Menunggu Konfirmasi Presensi
+                                                                        <td style="color:red">
+                                                                            Lakukan Konfirmasi Presensi
                                                                         </td>
                                                                     <?php elseif ($evaluasi['status_damping'] == 'pendampingan') : ?>
-                                                                        <td style="color: blue;">
+                                                                        <td style="color:blue">
                                                                             Lakukan Konfirmasi Selesai Pendampingan
                                                                         </td>
                                                                     <?php elseif ($evaluasi['status_damping'] == 'laporan') : ?>
                                                                         <td style="color: red;">
                                                                             Lakukan Pengisian Evaluasi Pendampingan
                                                                         </td>
-                                                                    <?php elseif ($evaluasi['status_damping'] == 'pendamping_review') : ?>
+                                                                    <?php elseif ($evaluasi['status_damping'] == 'madif_review') : ?>
                                                                         <td style="color: red;">
                                                                             Lakukan Pengisian Evaluasi Pendampingan
                                                                         </td>
-                                                                    <?php elseif ($evaluasi['status_damping'] == 'madif_review') : ?>
+                                                                    <?php elseif ($evaluasi['status_damping'] == 'pendamping_review') : ?>
                                                                         <td style="color: green;">
-                                                                            Menunggu Laporan Evaluasi dari Madif
+                                                                            Menunggu Laporan Evaluasi dari Pendamping
                                                                         </td>
                                                                     <?php elseif ($evaluasi['status_damping'] == 'selesai') : ?>
                                                                         <td style="color: green;">
@@ -584,35 +473,79 @@
                                                                         </td>
                                                                     <?php endif; ?>
 
+
+                                                                    <!-- Jika Tidak Ada Pendamping -->
+                                                                <?php else : ?>
+                                                                    <td>
+                                                                        Tidak Ada Pendamping
+                                                                    </td>
                                                                 <?php endif; ?>
 
-                                                                <!-- Aksi -->
-                                                                <td>
-                                                                    <button type="button" class="btn btn-warning btn-sm editJadwal my-1" data-bs-toggle="modal" data-bs-target="#jadwalDamping<?= $evaluasi['id_damping']; ?>" ?>
-                                                                        Detail
-                                                                    </button>
+                                                            <?php else : ?>
 
-                                                                    <?php if (!empty($evaluasi['biodata_pendamping'])) : ?>
-                                                                        <?php if (isset($evaluasi['profile_mhs']['madif'])) : ?>
-                                                                            <button type="button" class="btn btn-primary btn-sm editJadwal" data-bs-toggle="modal" data-bs-target="#profile<?= $evaluasi['biodata_pendamping']['id_profile_mhs']; ?>" ?>
-                                                                                Profile
-                                                                            </button>
-                                                                        <?php else : ?>
-                                                                            <button type="button" class="btn btn-primary btn-sm editJadwal" data-bs-toggle="modal" data-bs-target="#profile<?= $evaluasi['biodata_madif']['id_profile_mhs']; ?>" ?>
-                                                                                Profile
-                                                                            </button>
-                                                                        <?php endif; ?>
+                                                                <!-- Red: Ada task, green: menunggu task atau selesai -->
+                                                                <?php if (empty($evaluasi['status_damping'])) : ?>
+                                                                    <td style="color: <?= (empty($evaluasi['status_damping'])) ? 'red' : '' ?>;">
+                                                                        <a href="<?= base_url('konfirmasiDamping'); ?>/<?= $evaluasi['id_damping']; ?>" class="btn btn-success btn-sm">Confirm</a>
+                                                                        <a href="<?= base_url('IzinTidakDamping'); ?>/<?= $evaluasi['id_damping']; ?>" class="btn btn-danger btn-sm">Izin</a>
+                                                                    </td>
+                                                                <?php elseif ($evaluasi['status_damping'] == 'presensi_hadir') : ?>
+                                                                    <td style="color:red">
+                                                                        Lakukan Presensi Kehadiran
+                                                                    </td>
+                                                                <?php elseif ($evaluasi['status_damping'] == 'konfirmasi_presensi_hadir') : ?>
+                                                                    <td style="color: green;">
+                                                                        Menunggu Konfirmasi Presensi
+                                                                    </td>
+                                                                <?php elseif ($evaluasi['status_damping'] == 'pendampingan') : ?>
+                                                                    <td style="color: blue;">
+                                                                        Lakukan Konfirmasi Selesai Pendampingan
+                                                                    </td>
+                                                                <?php elseif ($evaluasi['status_damping'] == 'laporan') : ?>
+                                                                    <td style="color: red;">
+                                                                        Lakukan Pengisian Evaluasi Pendampingan
+                                                                    </td>
+                                                                <?php elseif ($evaluasi['status_damping'] == 'pendamping_review') : ?>
+                                                                    <td style="color: red;">
+                                                                        Lakukan Pengisian Evaluasi Pendampingan
+                                                                    </td>
+                                                                <?php elseif ($evaluasi['status_damping'] == 'madif_review') : ?>
+                                                                    <td style="color: green;">
+                                                                        Menunggu Laporan Evaluasi dari Madif
+                                                                    </td>
+                                                                <?php elseif ($evaluasi['status_damping'] == 'selesai') : ?>
+                                                                    <td style="color: green;">
+                                                                        Pendampingan Selesai
+                                                                    </td>
+                                                                <?php endif; ?>
+
+                                                            <?php endif; ?>
+
+                                                            <!-- Aksi -->
+                                                            <td>
+                                                                <button type="button" class="btn btn-warning btn-sm editJadwal my-1" data-bs-toggle="modal" data-bs-target="#jadwalDamping<?= $evaluasi['id_damping']; ?>" ?>
+                                                                    Detail
+                                                                </button>
+
+                                                                <?php if (!empty($evaluasi['biodata_pendamping'])) : ?>
+                                                                    <?php if (isset($evaluasi['profile_mhs']['madif'])) : ?>
+                                                                        <button type="button" class="btn btn-primary btn-sm editJadwal" data-bs-toggle="modal" data-bs-target="#profile<?= $evaluasi['biodata_pendamping']['id_profile_mhs']; ?>" ?>
+                                                                            Profile
+                                                                        </button>
+                                                                    <?php else : ?>
+                                                                        <button type="button" class="btn btn-primary btn-sm editJadwal" data-bs-toggle="modal" data-bs-target="#profile<?= $evaluasi['biodata_madif']['id_profile_mhs']; ?>" ?>
+                                                                            Profile
+                                                                        </button>
                                                                     <?php endif; ?>
-                                                                </td>
+                                                                <?php endif; ?>
+                                                            </td>
 
-                                                            </tr>
-                                                            <?php $i++; ?>
+                                                        </tr>
+                                                        <?php $i++; ?>
 
-                                                        <?php endif; ?>
                                                     <?php endif; ?>
-                                                <?php endforeach; ?>
-                                            <?php endif; ?>
-
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -767,6 +700,75 @@
                 </div>
             </div>
         </div>
+
+        <?php if (!isset($modalhjd['status_damping'])) : ?>
+            <!-- Modal Perizinan -->
+            <div class="modal fade" id="izinTidakDamping<?= $modalhjd['id_damping']; ?>" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header" style="background-color: rgba(223, 7, 36, 1);">
+                            <h4 class="modal-title" id="exampleModalLabel" style="color: whitesmoke;"> Pengajuan Izin Tidak Damping</h4>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+
+                        <div class=" modal-body">
+                            <form action="<?= base_url('/c_perizinan/saveIzin'); ?>" method="post" enctype="multipart/form-data">
+                                <?= csrf_field(); ?>
+                                <!-- Inputan tersembunyi id_damping -->
+                                <input type="hidden" name="id_damping" value=<?= $modalhjd['id_damping']; ?>>
+
+                                <!-- id profile mhs -->
+                                <input type="hidden" name="id_profile_mhs" value=<?= $modalhjd['biodata_pendamping']['id_profile_mhs']; ?>>
+
+                                <!-- Rekomendasi Pendamping -->
+                                <div class="row mb-2">
+                                    <label for="rekomen_pengganti" class="col-form-label">Rekomendasi Pengganti <span class="fs-6" style="color:red">(urutan berdasarkan kecocokan)</span></label>
+
+                                    <div>
+                                        <?php if (!empty($modalhjd['pendamping_pengganti'])) : ?>
+                                            <select class="form-select" name="rekomen_pengganti" id="rekomen_pengganti" required>
+                                                <option selected value="">Pilih Pendamping</option>
+                                                <?php $i = 1; ?>
+                                                <?php foreach ($modalhjd['pendamping_pengganti'] as $rekomen) : ?>
+                                                    <option value="<?= $rekomen['profile']['id_profile_mhs']; ?>"><?= $i++ . '. ' . $rekomen['profile']['nickname'] . (isset($rekomen['prioritas']) ? ' (Rekomendasi)' : ''); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        <?php else : ?>
+                                            <select class="form-select" name="rekomen_pengganti" id="rekomen_pengganti" disabled>
+                                                <option selected value="null" disabled>Rekomendasi Pendamping Tidak Tersedia</option>
+                                            </select>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+
+                                <!--Alasan Tidak Bisa Damping -->
+                                <div class="form-floating mb-3">
+                                    <textarea class="form-control" placeholder="Leave a comment here" id="floatingTextarea2" style="height: 100px" name="alasan" required></textarea>
+                                    <label for="floatingTextarea2">Alasan</label>
+                                </div>
+
+                                <!--Dokumen Izin-->
+                                <div class="row mb-3">
+                                    <label for="dokumen" class="col-form-label">Surat Izin <span class="fs-6" style="color:red">(optional)</span></label>
+
+                                    <div class="mb-3">
+                                        <input type="file" class="form-control" id="dokumen" name="dokumen">
+                                    </div>
+                                </div>
+
+                                <!-- Submit button -->
+                                <div class="modal-footer">
+                                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-success">
+                                        Simpan
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
     <?php endif; ?>
 
     <!-- Modal Jadwal Ujian -->

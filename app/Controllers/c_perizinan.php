@@ -13,11 +13,12 @@ use App\Models\m_laporan_damping;
 use App\Models\m_profile_mhs;
 
 use App\Controllers\c_profile_pendamping;
+use App\Models\m_notif_admin;
 
 class c_perizinan extends BaseController
 {
 
-    protected $db, $builder, $builder2, $dataUser, $damping_ujian, $jadwal_ujian, $profile_mhs, $biodata, $laporan, $cuti, $izin;
+    protected $db, $builder, $builder2, $dataUser, $damping_ujian, $jadwal_ujian, $profile_mhs, $biodata, $laporan, $cuti, $izin, $notif_admin, $notif_madif, $notif_pendamping;
     public function __construct()
     {
         $this->db      = \Config\Database::connect();
@@ -44,6 +45,9 @@ class c_perizinan extends BaseController
         $this->laporan = model(m_laporan_damping::class);
         $this->cuti = model(m_cuti::class);
         $this->izin = model(m_izin_tidak_damping::class);
+        $this->notif_admin = model(m_notif_admin::class);
+        $this->notif_madif = model(m_notif_madif::class);
+        $this->notif_pendamping = model(m_notif_pendamping::class);
     }
 
     // Menampilkan view semua perizinan, khusus admin
@@ -137,6 +141,7 @@ class c_perizinan extends BaseController
             'himpunan_damping_madif' => $himpun_madif,
             'hasil_jadwal_damping' => $transform_jadwal_damping,
             'user' => $this->dataUser,
+            'notifikasi'      => $this->notifikasi,
         ];
 
         return view('admin/damping_ujian/index', $data);
@@ -215,6 +220,7 @@ class c_perizinan extends BaseController
             'cuti_semester_approval' => $cuti_semester_approval,
             'cuti_sementara_approval' => $cuti_sementara_approval,
             'user' => $this->dataUser,
+            'notifikasi'      => $this->notifikasi,
         ];
         // dd($data);
 
@@ -380,6 +386,7 @@ class c_perizinan extends BaseController
             'izin_tanpa_pengganti_approval' => $izin_tanpa_pengganti_approval,
             'izin_ada_pengganti_approval' => $izin_ada_pengganti_approval,
             'user' => $this->dataUser,
+            'notifikasi'      => $this->notifikasi,
         ];
 
         // dd($data);
@@ -394,6 +401,7 @@ class c_perizinan extends BaseController
         $get_cuti = $this->cuti->getAllCuti($get_profile);
         $cuti_semester = [];
         $cuti_sementara = [];
+        $get_cuti = (isset($get_cuti)) ? $get_cuti : [];
 
         foreach ($get_cuti as $key) {
             $tanggal = date_create($key['tanggal_selesai']);
@@ -456,6 +464,7 @@ class c_perizinan extends BaseController
             'cuti_sementara' => $cuti_sementara,
             'tahun_semester' => $tahun_semester,
             'id_mhs' => $get_id_profile,
+            'notifikasi'      => $this->notifikasi,
         ];
         // dd($data);
 
@@ -570,6 +579,7 @@ class c_perizinan extends BaseController
             'get_damping' => $insert_data_damping,
             'get_izin' => $insert_data_izin,
             'id_mhs' => $get_id_profile,
+            'notifikasi'      => $this->notifikasi,
         ];
 
         // dd($data);
@@ -601,6 +611,7 @@ class c_perizinan extends BaseController
                 $get_profile_madif['jenis_difabel'] = $jenis_difabel['jenis'];
 
                 $get_profile_pendamping_lama = $this->profile_mhs->getProfile($get_biodata_pendamping_lama['id_profile_mhs']);
+                $get_profile_pendamping_baru = $this->profile_mhs->getProfile($key['id_pendamping_baru']);
 
                 $insert = [
                     'id_izin' => $key['id_izin'],
@@ -608,6 +619,7 @@ class c_perizinan extends BaseController
                     'jadwal_ujian' => $get_jadwal_ujian,
                     'madif' => $get_biodata_madif + $get_profile_madif,
                     'pendamping_lama' => $get_biodata_pendamping_lama + $get_profile_pendamping_lama,
+                    'pendamping_baru' => $get_profile_pendamping_baru,
                     'keterangan' => $key['keterangan'],
                     'dokumen' => $key['dokumen'],
                     'approval_admin' => $key['approval_admin'],
@@ -640,6 +652,7 @@ class c_perizinan extends BaseController
             'get_diterima' => $konfirmasi_diterima,
             'get_ditolak' => $konfirmasi_ditolak,
             'id_mhs' => $get_id_profile,
+            'notifikasi'      => $this->notifikasi,
         ];
 
         // dd($data);
@@ -737,8 +750,35 @@ class c_perizinan extends BaseController
             $this->db->table('users')->where(['username' => $get_nim_mhs['nim']])->update(['status' => false]);
             session()->setFlashdata('berhasil', 'Perizinan cuti mahasiswa ' . $get_nim_mhs['nickname'] . ' berhasil ditambahkan');
         }
-
         $this->cuti->save($insert);
+
+        // Mengirimkan notifikasi verifikasi ke Admin        
+        $get_cuti = $this->db->table('cuti')->getwhere(['id_profile_mhs' => $insert['id_profile_mhs']])->getLastRow();
+        if ($get_cuti->approval == null) {
+            $get_biodata_mhs = $this->biodata->getBiodata($get_cuti->id_profile_mhs);
+            $get_profile_mhs = $this->profile_mhs->getProfile($get_cuti->id_profile_mhs);
+            $get_nama = $get_biodata_mhs['nickname'];
+            $jenis_cuti = $get_cuti->jenis_cuti == 'cuti_semester' ? 'semester' : 'sementara';
+
+            $this->notif_admin->insert([
+                'id_jenis_notif' => $get_cuti->id_cuti,
+                'jenis_notif' => 'verif_cuti',
+                'pesan' => 'Permohonan verifikasi untuk perizinan cuti ' . $jenis_cuti . ' dari ' . $get_nama,
+                'is_read' => 0,
+            ]);
+
+            // Mengirimkan notifikasi verifikasi ke mahasiswa
+            $notif_mhs = ($get_profile_mhs['madif'] == true) ? $this->notif_madif : $this->notif_pendamping;
+            $role = ($get_profile_mhs['madif'] == true) ? 'madif' : 'pendamping';
+            $notif_mhs->insert([
+                'id_profile_' . $role => $get_id_profile_mhs,
+                'id_jenis_notif' =>  $get_cuti->id_cuti,
+                'jenis_notif' => 'notif_cuti',
+                'pesan' => 'Permohonan cuti ' . $jenis_cuti . ' telah dikirimkan',
+                'is_read' => 0,
+            ]);
+        }
+        // END        
 
         return redirect()->back();
     }
@@ -769,6 +809,17 @@ class c_perizinan extends BaseController
         $get_alasan = $this->request->getVar('alasan');
         $get_dokumen = $this->request->getFile('dokumen');
 
+        // Cek apakah perizinan sudah pernah dilakukan
+        $get_izin = $this->db->table('izin_tidak_damping')->getWhere(['id_damping_ujian' => $get_id_damping])->getResultArray();
+        if (count($get_izin) != 0) {
+            if ($get_izin[0]['approval_pengganti'] == 0 || $get_izin[0]['approval_admin'] == 0) {
+                $this->izin->delete($get_izin[0]['id_izin']);
+            } else {
+                session()->setFlashdata('izin_tidak_damping_gagal', 'Perizinan pada jadwal damping ini masih dalam tahap verifikasi oleh ' . (empty($get_izin[0]['approval_pengganti']) ? 'pendamping pengganti' : ($get_izin[0]['approval_pengganti'] == 1 ? 'admin' : '')));
+                return redirect()->back();
+            }
+        }
+
         $namaDokumen = null;
 
         if (file_exists($get_dokumen)) {
@@ -791,13 +842,51 @@ class c_perizinan extends BaseController
         if (isset($get_admin)) {
             $insert['approval_pengganti'] = true;
             $insert['approval_admin'] = true;
+            $this->damping_ujian->update($get_id_damping, ['id_profile_pendamping' => $get_pendamping_baru]);
             session()->setFlashdata('berhasil', 'Perizinan tidak damping berhasil ditambahkan');
         } else {
+            $this->damping_ujian->update($get_id_damping, ['status_damping' => (empty($get_pendamping_baru) ? 'izin_verifikasi_admin' : 'izin_verifikasi_pendamping')]);
             session()->setFlashdata('berhasil', 'Perizinan tidak damping berhasil diajukan');
         }
 
         $this->izin->save($insert);
-        $this->damping_ujian->update($get_id_damping, ['id_profile_pendamping' => $get_pendamping_baru]);
+        // Mengirimkan notifikasi verifikasi ke Admin
+        // Jika pendamping lama tidak menemukan pendamping pengganti, maka verifikasi langsung diarahkan ke admin
+        if (!isset($get_admin)) {
+            $get_izin = $this->db->table('izin_tidak_damping')->getwhere(['id_damping_ujian' => $insert['id_damping_ujian']])->getLastRow();
+
+            if (!isset($get_pendamping_baru)) {
+                $get_biodata_pendamping = $this->biodata->getBiodata($get_id_profile_mhs);
+                $get_nama_pendamping = $get_biodata_pendamping['nickname'];
+
+                $this->notif_admin->insert([
+                    'id_jenis_notif' => $get_izin->id_izin,
+                    'jenis_notif' => 'verif_izin',
+                    'pesan' => 'Permohonan verifikasi untuk perizinan tidak damping dari ' . $get_nama_pendamping,
+                    'is_read' => 0,
+                ]);
+            } else {
+                // Mengirimkan notifikasi verifikasi
+                $this->notif_pendamping->insert([
+                    'id_profile_pendamping' => $get_id_profile_mhs,
+                    'id_jenis_notif' => $get_izin->id_izin,
+                    'jenis_notif' => 'notif_izin',
+                    'pesan' => 'Permohonan izin tidak damping telah dikirimkan',
+                    'is_read' => 0,
+                ]);
+
+                // Mengirimkan notifikasi verifikasi
+                $this->notif_pendamping->insert([
+                    'id_profile_pendamping' => $get_pendamping_baru,
+                    'id_jenis_notif' => $get_izin->id_izin,
+                    'jenis_notif' => 'verif_pengganti',
+                    'pesan' => 'Anda dipilih sebagai pendamping pengganti. Segera lakukan konfirmasi pergantian pendamping',
+                    'is_read' => 0,
+                ]);
+            }
+        }
+        // END
+
         return redirect()->back();
     }
 
@@ -812,6 +901,26 @@ class c_perizinan extends BaseController
         } elseif ($status == 'tolak') {
             $this->cuti->update($get_id_cuti, ['approval' => 0]);
         }
+
+        // Mengirimkan notifikasi verifikasi ke Madif
+        $get_cuti = $this->cuti->getDetailCuti($get_id_cuti);
+        $get_profile_mhs = $this->profile_mhs->getProfile($get_cuti['id_profile_mhs']);
+
+        $id_profile_mhs = $get_cuti['id_profile_mhs'];
+        $jenis_cuti = ($get_cuti['jenis_cuti'] == 'cuti_semester') ? 'semester' : 'sementara';
+        $verif = ($status == 'terima') ? 'disetujui' : 'ditolak';
+
+        $notif_mhs = ($get_profile_mhs['madif'] == true) ? $this->notif_madif : $this->notif_pendamping;
+        $role = ($get_profile_mhs['madif'] == true) ? 'madif' : 'pendamping';
+        $notif_mhs->insert([
+            'id_profile_' . $role => $id_profile_mhs,
+            'id_jenis_notif' => $get_id_cuti,
+            'jenis_notif' => 'notif_cuti',
+            'pesan' => 'Permohonan cuti ' . $jenis_cuti . ' telah ' . $verif . ' oleh admin',
+            'is_read' => 0,
+        ]);
+        // END
+
         return redirect()->back();
     }
 
@@ -820,20 +929,67 @@ class c_perizinan extends BaseController
         $role = $this->request->getUri()->getSegment(3);
         $get_id_izin = $this->request->getUri()->getSegment(4);
         $status = $this->request->getUri()->getSegment(5);
+
+        $get_izin = $this->izin->getDetailIzin($get_id_izin);
+        $get_damping = $this->damping_ujian->getDetailDamping($get_izin['id_damping_ujian']);
+        $get_id_damping = $get_damping['id_damping'];
+        $get_id_pengganti = $get_izin['id_pendamping_baru'];
+        $get_id_pendamping = $get_izin['id_pendamping_lama'];
+
         $approval = ($role == 'admin') ? 'approval_admin' : 'approval_pengganti';
+        $verif = ($status == 'terima') ? 'disetujui' : 'ditolak';
 
         if ($status == 'terima') {
             if ($role == 'admin') {
-                $get_id_damping = $this->request->getVar('id_damping');
-                $get_id_pengganti = $this->request->getVar('pendamping_pengganti');
                 $this->izin->update($get_id_izin, ['id_pendamping_baru' => $get_id_pengganti, 'approval_pengganti' => '1']);
                 $this->damping_ujian->update($get_id_damping, ['id_profile_pendamping' => $get_id_pengganti, 'status_damping' => 'presensi_hadir']);
+
+                // Mengirimkan notifikasi verifikasi ke Madif
+                $id_profile_madif = $get_damping['id_profile_madif'];
+                $jenis_ujian = $get_damping['jenis_ujian'];
+
+                $get_jadwal = $this->jadwal_ujian->getDetailUjian($get_damping['id_jadwal_ujian_madif']);
+                $mata_kuliah = $get_jadwal['mata_kuliah'];
+
+                $this->notif_madif->insert([
+                    'id_profile_madif' => $id_profile_madif,
+                    'id_jenis_notif' => $get_id_damping,
+                    'jenis_notif' => 'notif_damping',
+                    'pesan' => 'Pendamping pada jadwal ujian ' . $jenis_ujian . ' ' . $mata_kuliah . ' telah berganti ',
+                    'is_read' => 0,
+                ]);
+                // END
+            } else {
+                $this->damping_ujian->update($get_id_damping, ['status_damping' => 'izin_verifikasi_admin']);
             }
             session()->setFlashdata('berhasil', 'Perizinan berhasil disetujui');
             $this->izin->update($get_id_izin, [$approval => '1']);
         } elseif ($status == 'tolak') {
+            $this->damping_ujian->update($get_id_damping, ['status_damping' => null]);
             session()->setFlashdata('tolak', 'Perizinan berhasil ditolak');
             $this->izin->update($get_id_izin, [$approval => '0']);
+        }
+
+        if (!$role == 'admin') {
+            // Mengirimkan notifikasi verifikasi ke pendamping
+            $this->notif_pendamping->insert([
+                'id_profile_pendamping' => $get_id_pendamping,
+                'id_jenis_notif' => $get_id_izin,
+                'jenis_notif' => 'notif_izin',
+                'pesan' => 'Permohonan izin tidak damping telah ' . $verif . ' oleh pendamping pengganti',
+                'is_read' => 0,
+            ]);
+            // END
+        } else {
+            // Mengirimkan notifikasi verifikasi ke pendamping
+            $this->notif_pendamping->insert([
+                'id_profile_pendamping' => $get_id_pendamping,
+                'id_jenis_notif' => $get_id_izin,
+                'jenis_notif' => 'notif_izin',
+                'pesan' => 'Permohonan izin tidak damping telah ' . $verif . ' oleh admin',
+                'is_read' => 0,
+            ]);
+            // END
         }
 
         return redirect()->back();

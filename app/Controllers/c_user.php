@@ -7,6 +7,7 @@ use App\Models\m_cuti;
 use App\Models\m_izin_tidak_damping;
 use App\Models\m_jadwal_ujian;
 use App\Models\m_laporan_damping;
+use App\Models\m_notif_admin;
 use App\Models\m_profile_mhs;
 use Myth\Auth\Models\UserModel;
 use phpDocumentor\Reflection\Types\Null_;
@@ -16,8 +17,7 @@ use function PHPUnit\Framework\isNull;
 
 class c_user extends BaseController
 {
-	protected $db, $builder, $builder2, $dataUser, $profile, $biodata, $user_m, $jadwal_ujian, $damping_ujian, $laporan, $izin, $cuti;
-
+	protected $db, $builder, $builder2, $dataUser, $biodata, $user_m, $jadwal_ujian, $damping_ujian, $laporan, $izin, $cuti, $notif_admin, $notif_madif, $notif_pendamping, $profile_mhs, $profile_admin, $notifikasi;
 	public function __construct()
 	{
 		$this->db      = \Config\Database::connect();
@@ -36,7 +36,8 @@ class c_user extends BaseController
 		$query = $this->builder2->get();
 		$this->dataUser = $query->getRow();
 
-		$this->profile = model(m_profile_mhs::class);
+		$this->profile_mhs = model(m_profile_mhs::class);
+		$this->profile_admin = model(m_profile_admin::class);
 		$this->biodata = model(m_biodata::class);
 		$this->user_m = model(UserModel::class);
 		$this->jadwal_ujian = model(m_jadwal_ujian::class);
@@ -44,6 +45,208 @@ class c_user extends BaseController
 		$this->cuti = model(m_cuti::class);
 		$this->laporan = model(m_laporan_damping::class);
 		$this->izin = model(m_izin_tidak_damping::class);
+		$this->notif_admin = model(m_notif_admin::class);
+		$this->notif_madif = model(m_notif_madif::class);
+		$this->notif_pendamping = model(m_notif_pendamping::class);
+
+		if (in_groups('admin')) {
+			$get_notifikasi = $this->notif_admin->getNotificationTopBar();
+
+			$jenis_notif = [
+				'notif_user' => 'User Baru',
+				'notif_damping' => 'Generate',
+				'verif_skills' => 'Skills',
+				'verif_jenis_madif' => 'Jenis madif',
+				'verif_izin' => 'Izin',
+				'verif_cuti' => 'Cuti',
+				'verif_laporan' => 'Laporan',
+				'verif_jadwal' => 'Jadwal Ujian',
+			];
+
+			$get_notif = [];
+			foreach ($get_notifikasi as $key_no => $value_no) {
+				if ($value_no['jenis_notif'] == 'verif_jadwal') {
+					$builder = $this->jadwal_ujian->find($value_no['id_jenis_notif']);
+					$builder1 = $this->profile_mhs->find($builder['id_profile_mhs']);
+					$get_jenis_ujian = $builder['jenis_ujian'];
+					$get_nim = $builder1['nim'];
+				} elseif ($value_no['jenis_notif'] == 'verif_laporan') {
+					$get_laporan = $this->laporan->find($value_no['id_jenis_notif']);
+					$get_damping = $this->damping_ujian->find($get_laporan['id_damping']);
+				} elseif ($value_no['jenis_notif'] == 'notif_user') {
+					$get_role = $this->db->table('users')->select('name as role')->join('auth_groups_users', 'users.id = auth_groups_users.user_id')->join('auth_groups', 'auth_groups.id=auth_groups_users.group_id')->getwhere(['users.id' => $value_no['id_jenis_notif']])->getRowArray();
+				}
+
+				$link_verif = [
+					'verif_skills' => 'viewAllSkill',
+					'verif_jenis_madif' => 'viewAllJenisMadif',
+					'verif_izin' => 'viewAllIzin',
+					'verif_cuti' => 'viewAllCuti',
+					'verif_laporan' => 'viewAllLaporan' . ($value_no['jenis_notif'] == 'verif_laporan' ? $get_damping['jenis_ujian'] : ''),
+					'verif_jadwal' => 'viewJadwal' . ($value_no['jenis_notif'] == 'verif_jadwal' ? $get_jenis_ujian . '/' . $get_nim : ''),
+					'notif_user' => ($value_no['jenis_notif'] == 'notif_user' ? 'viewUser' . ucfirst($get_role['role']) : ''),
+					'notif_damping' => 'c_damping_ujian',
+				];
+
+				$get_notif[$key_no]['detail'] = [
+					'jenis_notif' => $jenis_notif[$value_no['jenis_notif']],
+					'link_jenis_notif' => base_url('is_read/admin/' . $value_no['id_notif'] . '/' . $link_verif[$value_no['jenis_notif']]),
+					'link_is_read' => base_url('is_read/admin/' . $value_no['id_notif']),
+					'link_del_notif' => base_url('c_notif/delNotif/admin/' . $value_no['id_notif']),
+				];
+
+				$get_notif[$key_no]['pesan'] = $value_no['pesan'];
+			}
+
+			$jumlah_notif_user = count($this->notif_admin->getNotifUser());
+			$jumlah_generate = count($this->notif_admin->getNotifGenerate());
+			$jumlah_verif = count($this->notif_admin->getNotifVerifikasi());
+			$jumlah_notif = $jumlah_notif_user + $jumlah_generate;
+
+			$total_notif_admin = $jumlah_verif + $jumlah_notif;
+			$this->notifikasi['notif'] = $get_notif;
+			$this->notifikasi['total'] = $total_notif_admin;
+		} elseif (in_groups('madif')) {
+			$get_nim = $this->dataUser->username;
+			$id_profile_mhs = $this->profile_mhs->getID($get_nim);
+			$get_notifikasi = $this->notif_madif->getNotificationTopBar($id_profile_mhs);
+			$jenis_notif = [
+				'notif_jadwal' => 'Jadwal',
+				'notif_jenis_difabel' => 'Difabel',
+				'notif_damping' => 'Damping',
+				'notif_laporan' => 'Laporan',
+				'notif_cuti' => 'Cuti',
+				'verif_presensi' => 'Presensi',
+			];
+
+			$get_notif = [];
+			foreach ($get_notifikasi as $key_no => $value_no) {
+				if ($value_no['jenis_notif'] == 'notif_jadwal') {
+					$get_jadwal = $this->jadwal_ujian->getDetailUjian($value_no['id_jenis_notif']);
+					$get_jenis_ujian = $get_jadwal['jenis_ujian'];
+				} elseif ($value_no['jenis_notif'] == 'notif_damping') {
+					if (isset($value_no['id_jenis_notif'])) {
+						$get_damping = $this->damping_ujian->find($value_no['id_jenis_notif']);
+						$get_jenis_ujian = $get_damping['jenis_ujian'];
+					} else {
+						$get_id_profile_mhs = $this->profile_mhs->getID($get_nim);
+						$get_jenis_ujian = $this->db->table('damping_ujian')->select('jenis_ujian')->where('id_profile_madif', $get_id_profile_mhs)->getwhere(['created_at' => $value_no['created_at']])->getRowArray();
+						$get_jenis_ujian = $get_jenis_ujian['jenis_ujian'];
+					}
+				} elseif ($value_no['jenis_notif'] == 'notif_laporan') {
+					$get_laporan = $this->laporan->find($value_no['id_jenis_notif']);
+					$get_damping = $this->damping_ujian->find($get_laporan['id_damping']);
+					$get_jenis_ujian = $get_damping['jenis_ujian'];
+				} elseif ($value_no['jenis_notif'] == 'verif_presensi') {
+					$get_damping = $this->damping_ujian->getDetailDamping($value_no['id_jenis_notif']);
+				}
+
+				$link_verif = [
+					'notif_jadwal' => 'viewJadwal' . ($value_no['jenis_notif'] == 'notif_jadwal' ? $get_jadwal['jenis_ujian'] . '/' . $get_nim : ''),
+					'notif_jenis_difabel' => 'viewProfile/' . $get_nim,
+					'notif_damping' => 'viewDamping' . ($value_no['jenis_notif'] == 'notif_damping' ? $get_jenis_ujian . '/' . $get_nim : ''),
+					'notif_laporan' => 'viewLaporan' . ($value_no['jenis_notif'] == 'notif_laporan' ? $get_jenis_ujian . '/' . $get_nim : ''),
+					'notif_cuti' => 'viewCuti/' . $get_nim,
+					'verif_presensi' => 'viewDamping' . $get_damping['jenis_ujian'] . '/' . $get_nim,
+				];
+
+				$get_notif[$key_no]['detail'] = [
+					'jenis_notif' => $jenis_notif[$value_no['jenis_notif']],
+					'link_jenis_notif' => base_url('is_read/madif/' . $value_no['id_notif'] . '/' . $link_verif[$value_no['jenis_notif']]),
+					'link_is_read' => base_url('is_read/madif/' . $value_no['id_notif']),
+					'link_del_notif' => base_url('c_notif/delNotif/madif/' . $value_no['id_notif']),
+				];
+
+				$get_notif[$key_no]['pesan'] = $value_no['pesan'];
+			}
+
+			$jumlah_verif = $this->notif_madif->getNotifVerifikasi($id_profile_mhs);
+			$jumlah_verif = array_filter($jumlah_verif, function ($var) {
+				return ($var['is_read'] == 0);
+			});
+
+			$jumlah_notif = $this->notif_madif->getNotif($id_profile_mhs);
+			$jumlah_notif = array_filter($jumlah_notif, function ($var) {
+				return ($var['is_read'] == 0);
+			});
+
+			$jumlah_verif = count($jumlah_verif);
+			$jumlah_notif = count($jumlah_notif);
+			
+			$total_notif_mhs = $jumlah_verif + $jumlah_notif;
+			$this->notifikasi['notif'] = $get_notif;
+			$this->notifikasi['total'] = $total_notif_mhs;
+		} else {
+			$get_nim = $this->dataUser->username;
+			$id_profile_mhs = $this->profile_mhs->getID($get_nim);
+			$get_notifikasi = $this->notif_pendamping->getNotificationTopBar($id_profile_mhs);
+			$jenis_notif = [
+				'notif_jadwal' => 'Jadwal',
+				'notif_skill' => 'Skill',
+				'notif_damping' => 'Damping',
+				'notif_laporan' => 'Laporan',
+				'notif_cuti' => 'Cuti',
+				'notif_izin' => 'Izin',
+				'verif_pengganti' => 'Pengganti',
+			];
+
+			$get_notif = [];
+			foreach ($get_notifikasi as $key_no => $value_no) {
+				if ($value_no['jenis_notif'] == 'notif_jadwal') {
+					$get_jadwal = $this->jadwal_ujian->getDetailUjian($value_no['id_jenis_notif']);
+					$get_jenis_ujian = $get_jadwal['jenis_ujian'];
+				} elseif ($value_no['jenis_notif'] == 'notif_damping') {
+					if (isset($value_no['id_jenis_notif'])) {
+						$get_damping = $this->damping_ujian->find($value_no['id_jenis_notif']);
+						$get_jenis_ujian = $get_damping['jenis_ujian'];
+					} else {
+						$get_id_profile_mhs = $this->profile_mhs->getID($get_nim);
+						$get_jenis_ujian = $this->db->table('damping_ujian')->select('jenis_ujian')->where('id_profile_pendamping', $get_id_profile_mhs)->getwhere(['created_at' => $value_no['created_at']])->getRowArray();
+						$get_jenis_ujian = $get_jenis_ujian['jenis_ujian'];
+					}
+				} elseif ($value_no['jenis_notif'] == 'notif_laporan') {
+					$get_laporan = $this->laporan->find($value_no['id_jenis_notif']);
+					$get_damping = $this->damping_ujian->find($get_laporan['id_damping']);
+					$get_jenis_ujian = $get_damping['jenis_ujian'];
+				}
+
+				$link_verif = [
+					'notif_jadwal' => 'viewJadwal' . ($value_no['jenis_notif'] == 'notif_jadwal' ? $get_jadwal['jenis_ujian'] . '/' . $get_nim : ''),
+					'notif_skill' => 'viewProfile/' . $get_nim,
+					'notif_damping' => 'viewDamping' . ($value_no['jenis_notif'] == 'notif_damping' ? $get_jenis_ujian . '/' . $get_nim : ''),
+					'notif_laporan' => 'viewLaporan' . ($value_no['jenis_notif'] == 'notif_laporan' ? $get_jenis_ujian . '/' . $get_nim : ''),
+					'notif_cuti' => 'viewCuti/' . $get_nim,
+					'notif_izin' => 'viewIzin/' . $get_nim,
+					'verif_presensi' =>  'konfirmasi_pengganti/' . $get_nim,
+				];
+
+				$get_notif[$key_no]['detail'] = [
+					'jenis_notif' => $jenis_notif[$value_no['jenis_notif']],
+					'link_jenis_notif' => base_url('is_read/pengganti/' . $value_no['id_notif'] . '/' . $link_verif[$value_no['jenis_notif']]),
+					'link_is_read' => base_url('is_read/pengganti/' . $value_no['id_notif']),
+					'link_del_notif' => base_url('c_notif/delNotif/pengganti/' . $value_no['id_notif']),
+				];
+
+				$get_notif[$key_no]['pesan'] = $value_no['pesan'];
+			}
+
+			$jumlah_verif = $this->notif_pendamping->getNotifVerifikasi($id_profile_mhs);
+			$jumlah_verif = array_filter($jumlah_verif, function ($var) {
+				return ($var['is_read'] == 0);
+			});
+
+			$jumlah_notif = $this->notif_pendamping->getNotif($id_profile_mhs);
+			$jumlah_notif = array_filter($jumlah_notif, function ($var) {
+				return ($var['is_read'] == 0);
+			});
+
+			$jumlah_verif = count($jumlah_verif);
+			$jumlah_notif = count($jumlah_notif);
+
+			$total_notif_mhs = $jumlah_verif + $jumlah_notif;
+			$this->notifikasi['notif'] = $get_notif;
+			$this->notifikasi['total'] = $total_notif_mhs;
+		}
 	}
 
 	// Melihat dashboard
@@ -173,13 +376,13 @@ class c_user extends BaseController
 			$data_verifikasi['v_jadwal_ujian']['role'] = $jadwal_ujian['role'];
 			$data_verifikasi['v_jadwal_ujian']['updated_at'] = date('Y-m-d H:i:s', strtotime($jadwal_ujian['updated_at']));
 			if ($jadwal_ujian['role'] == 'madif') {
-				$get_jenis_difabel = $this->profile->getJenisMadif($jadwal_ujian['id_profile_mhs']);
-				$get_kategori_madif = $this->profile->getKategoriDifabel($get_jenis_difabel['id_jenis_difabel']);
+				$get_jenis_difabel = $this->profile_mhs->getJenisMadif($jadwal_ujian['id_profile_mhs']);
+				$get_kategori_madif = $this->profile_mhs->getKategoriDifabel($get_jenis_difabel['id_jenis_difabel']);
 				$get_kategori_madif = $get_kategori_madif['jenis'];
 				$data_verifikasi['v_jadwal_ujian']['kategori_difabel'] = $get_kategori_madif;
 			}
 			$jadwal_ujian = $this->jadwal_ujian->getDetailUjian($jadwal_ujian['id_jadwal_ujian']);
-			$get_profile = $this->profile->getProfile($jadwal_ujian['id_profile_mhs']);
+			$get_profile = $this->profile_mhs->getProfile($jadwal_ujian['id_profile_mhs']);
 			$jadwal_ujian['nim'] = $get_profile['nim'];
 
 			$data_verifikasi['v_jadwal_ujian']['data'] = $jadwal_ujian;
@@ -192,17 +395,10 @@ class c_user extends BaseController
 
 		if (isset($laporan)) {
 			$profile_madif = $this->biodata->getProfile($laporan['id_profile_madif']);
-			$id_jenis_madif = $this->profile->getJenisMadif($laporan['id_profile_madif']);
-			$jenis_madif = $this->profile->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
+			$id_jenis_madif = $this->profile_mhs->getJenisMadif($laporan['id_profile_madif']);
+			$jenis_madif = $this->profile_mhs->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
 			$profile_madif['jenis_madif'] = $jenis_madif['jenis'];
 			$biodata_pendamping = $this->biodata->getBiodata($laporan['id_profile_pendamping']);
-			// d($profile_madif);
-			// d($biodata_madif);
-			// d($id_jenis_madif);
-			// d($jenis_madif);
-			// d($profile_madif);
-			// d($profile_pendamping);
-			// d($biodata_pendamping);
 			$insert_laporan_damping = [
 				'id_laporan_damping' => $laporan['id_laporan_damping'],
 				'madif_rating' => $laporan['madif_rating'],
@@ -231,13 +427,13 @@ class c_user extends BaseController
 			$data_verifikasi['v_cuti']['role'] = $cuti['role'];
 			$data_verifikasi['v_cuti']['updated_at'] = date('Y-m-d H:i:s', strtotime($cuti['cuti_updated_at']));
 			if ($cuti['role'] == 'madif') {
-				$get_jenis_difabel = $this->profile->getJenisMadif($cuti['id_profile_mhs']);
-				$get_kategori_madif = $this->profile->getKategoriDifabel($get_jenis_difabel['id_jenis_difabel']);
+				$get_jenis_difabel = $this->profile_mhs->getJenisMadif($cuti['id_profile_mhs']);
+				$get_kategori_madif = $this->profile_mhs->getKategoriDifabel($get_jenis_difabel['id_jenis_difabel']);
 				$get_kategori_madif = $get_kategori_madif['jenis'];
 				$data_verifikasi['v_cuti']['kategori_difabel'] = $get_kategori_madif;
 			}
 			$get_cuti = $this->cuti->getDetailCuti($cuti['id_cuti']);
-			$get_profile_cuti = $this->profile->getProfile($get_cuti['id_profile_mhs']);
+			$get_profile_cuti = $this->profile_mhs->getProfile($get_cuti['id_profile_mhs']);
 			$get_biodata_cuti = $this->biodata->getBiodata($get_cuti['id_profile_mhs']);
 			$data_verifikasi['v_cuti']['data'] = $get_cuti;
 			$data_verifikasi['v_cuti']['data']['fullname'] = $get_biodata_cuti['fullname'];
@@ -256,9 +452,9 @@ class c_user extends BaseController
 			$get_damping_ujian = $this->damping_ujian->find($izin['id_damping_ujian']);
 			$get_jadwal_ujian = $this->jadwal_ujian->find($get_damping_ujian['id_jadwal_ujian_madif']);
 
-			$get_profile_pendamping_lama = $this->profile->getProfile($izin['id_pendamping_lama']);
+			$get_profile_pendamping_lama = $this->profile_mhs->getProfile($izin['id_pendamping_lama']);
 			$get_biodata_pendamping_lama = $this->biodata->getBiodata($izin['id_pendamping_lama']);
-			$get_profile_pendamping_baru = $this->profile->getProfile($izin['id_pendamping_baru']);
+			$get_profile_pendamping_baru = $this->profile_mhs->getProfile($izin['id_pendamping_baru']);
 			$get_biodata_pendamping_baru = $this->biodata->getBiodata($izin['id_pendamping_baru']);
 
 			$insert_v_izin = [
@@ -274,7 +470,7 @@ class c_user extends BaseController
 			$data_verifikasi['v_tidak_damping']['role'] = 'pendamping';
 			$data_verifikasi['v_tidak_damping']['updated_at'] = date('Y-m-d H:i:s', strtotime($izin['updated_at']));
 			if (!isset($izin['id_pendamping_baru'])) {
-				$get_all_pendamping = $this->profile->getAllProfilePendamping();
+				$get_all_pendamping = $this->profile_mhs->getAllProfilePendamping();
 				$all_id_profile_pendamping = [];
 				foreach ($get_all_pendamping as $gap) {
 					if ($gap['id_profile_mhs'] == $izin['id_pendamping_lama']) {
@@ -282,8 +478,8 @@ class c_user extends BaseController
 					}
 					$all_id_profile_pendamping[] = $gap['id_profile_mhs'];
 				}
-				$id_jenis_madif = $this->profile->getJenisMadif($get_jadwal_ujian['id_profile_mhs']);
-				$jenis_madif = $this->profile->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
+				$id_jenis_madif = $this->profile_mhs->getJenisMadif($get_jadwal_ujian['id_profile_mhs']);
+				$jenis_madif = $this->profile_mhs->getKategoriDifabel($id_jenis_madif['id_jenis_difabel']);
 				$data_plotting = [
 					'jadwal_madif' => $get_jadwal_ujian,
 					'jenis_difabel' => $jenis_madif,
@@ -304,7 +500,7 @@ class c_user extends BaseController
 		// END
 
 		// Skills Pendamping
-		$skills = $this->profile->getSkills();
+		$skills = $this->profile_mhs->getSkills();
 		$columns_1 = array_column($skills, 'approval');
 		$columns_2 = array_column($skills, 'updated_at');
 		$columns_3 = array_column($skills, 'prioritas');
@@ -312,7 +508,7 @@ class c_user extends BaseController
 
 		if ($skills[0]['approval'] == null) {
 			$skills = $skills[0];
-			$get_ref_pendampingan = $this->profile->getKategoriDifabel($skills['ref_pendampingan']);
+			$get_ref_pendampingan = $this->profile_mhs->getKategoriDifabel($skills['ref_pendampingan']);
 			$skills['kategori_difabel'] = $get_ref_pendampingan['jenis'];
 			$get_biodata_pendamping = $this->biodata->getBiodata($skills['id_profile_pendamping']);
 
@@ -326,7 +522,7 @@ class c_user extends BaseController
 		// END
 
 		// Jenis Madif
-		$v_jenis_madif = $this->profile->getJenisMadif();
+		$v_jenis_madif = $this->profile_mhs->getJenisMadif();
 		$columns_1 = array_column($v_jenis_madif, 'approval');
 		$columns_2 = array_column($v_jenis_madif, 'updated_at');
 		array_multisort($columns_1, SORT_ASC, $columns_2, SORT_DESC, $v_jenis_madif);
@@ -334,7 +530,7 @@ class c_user extends BaseController
 
 		if ($v_jenis_madif['approval'] == null) {
 			$get_biodata_madif = $this->biodata->getBiodata($v_jenis_madif['id_profile_madif']);
-			$get_jenis_madif = $this->profile->getKategoriDifabel($v_jenis_madif['id_jenis_difabel']);
+			$get_jenis_madif = $this->profile_mhs->getKategoriDifabel($v_jenis_madif['id_jenis_difabel']);
 
 			$data_verifikasi['v_jenis_madif']['jenis_verifikasi'] = 'Jenis Madif';
 			$data_verifikasi['v_jenis_madif']['nickname'] = $get_biodata_madif['nickname'];
@@ -389,8 +585,6 @@ class c_user extends BaseController
 		}
 		// END
 
-		// Dashboard verifikasi limit 5
-
 		$data = [
 			'title'	  => "Dashboard Admin",
 			'd_user' => $data_user,
@@ -401,6 +595,7 @@ class c_user extends BaseController
 			'd_skills_pendamping' => $data_skills_pendamping,
 			'd_jenis_madif' => $data_jenis_madif,
 			'user'	  => $this->dataUser,
+			'notifikasi'	  => $this->notifikasi,
 		];
 		// dd($data);
 
@@ -414,8 +609,8 @@ class c_user extends BaseController
 		// Damping Ujian: UTS, UAS, Tidak Diverifikasi, Diverifikasi, dan Nunggu Konfirmasi
 		// Laporan: UTS, UAS, Tidak Diverifikasi, diverifikasi, dan menunggu
 		// Perizinan: Tidak Damping, Cuti, Tidak Diverifikasi, diverifikasi, dan menunggu		
-		$get_id_profile = $this->profile->getID($this->dataUser->username);
-		$get_profile = $this->profile->getProfile($get_id_profile);
+		$get_id_profile = $this->profile_mhs->getID($this->dataUser->username);
+		$get_profile = $this->profile_mhs->getProfile($get_id_profile);
 
 		// Dashboard Jadwal Ujian
 		$jadwal_uts = $this->jadwal_ujian->getJadwalUjianUTS($get_id_profile);
@@ -608,6 +803,7 @@ class c_user extends BaseController
 			'd_laporan' => $data_laporan,
 			'd_perizinan' => $data_perizinan,
 			'user'	  => $this->dataUser,
+			'notifikasi'	  => $this->notifikasi,
 		];
 		// dd($data);
 		return view('user/v_dashboard_mhs', $data);
@@ -615,14 +811,14 @@ class c_user extends BaseController
 
 	public function viewUserAdmin()
 	{
-		$get_all_user_admin = $this->profile->getAllProfileAdmin();
+		$get_all_user_admin = $this->profile_mhs->getAllProfileAdmin();
 
 		$data = [
 			'title'	  => "User Management Admin",
 			'admin'	  => $get_all_user_admin,
 			'user'	  => $this->dataUser,
+			'notifikasi'	  => $this->notifikasi,
 		];
-
 		// dd($data);
 
 		return view('admin/user_management/v_user_admin', $data);
@@ -630,7 +826,7 @@ class c_user extends BaseController
 
 	public function viewUserMadif()
 	{
-		$get_all_user_madif = $this->profile->getAllProfileMadif();
+		$get_all_user_madif = $this->profile_mhs->getAllProfileMadif();
 		$madif_aktif = [];
 		$madif_nonaktif = [];
 
@@ -641,7 +837,7 @@ class c_user extends BaseController
 				$madif_nonaktif[] = $key;
 			}
 		}
-		$kategori_difabel = $this->profile->getAllKategoriDifabel();
+		$kategori_difabel = $this->profile_mhs->getAllKategoriDifabel();
 		$data = [
 			'title'	  => "User Management Madif",
 			'madif'	  => $get_all_user_madif,
@@ -649,6 +845,7 @@ class c_user extends BaseController
 			'madif_nonaktif'	  => $madif_nonaktif,
 			'kategori_difabel' => $kategori_difabel,
 			'user'	  => $this->dataUser,
+			'notifikasi'	  => $this->notifikasi,
 		];
 		// dd($data);
 
@@ -657,16 +854,16 @@ class c_user extends BaseController
 
 	public function viewUserPendamping()
 	{
-		$get_all_user_pendamping = $this->profile->getAllProfilePendamping();
-		$get_all_kategori_difabel = $this->profile->getKategoriDifabel();
+		$get_all_user_pendamping = $this->profile_mhs->getAllProfilePendamping();
+		$get_all_kategori_difabel = $this->profile_mhs->getKategoriDifabel();
 		$pendamping_aktif = [];
 		$pendamping_nonaktif = [];
 		// Ambil skill setiap pendamping
 		foreach ($get_all_user_pendamping as $key => $value) {
-			$get_skills = $this->profile->getSkills($value['id_profile_mhs']);
+			$get_skills = $this->profile_mhs->getSkills($value['id_profile_mhs']);
 			$insert_skills = [];
 			foreach ($get_skills as $key1) {
-				$get_nama_skills = $this->profile->getKategoriDifabel($key1['ref_pendampingan']);
+				$get_nama_skills = $this->profile_mhs->getKategoriDifabel($key1['ref_pendampingan']);
 				$insert_skills[] = [
 					'id' => $get_nama_skills['id'],
 					'skill' => $get_nama_skills['jenis'],
@@ -691,6 +888,7 @@ class c_user extends BaseController
 			'pendamping_nonaktif'	  => $pendamping_nonaktif,
 			'all_jenis_skill' => $get_all_kategori_difabel,
 			'user'	  => $this->dataUser,
+			'notifikasi'	  => $this->notifikasi,
 		];
 		// dd($data);
 
@@ -729,13 +927,13 @@ class c_user extends BaseController
 			'user'	  => $this->dataUser,
 			'profile' => $profile,
 			'biodata' => $biodata,
-			'kategori_difabel' => $this->profile->getKategoriDifabel(),
+			'kategori_difabel' => $this->profile_mhs->getKategoriDifabel(),
 		];
 
 		if ($this->dataUser->name == 'pendamping') {
-			$data['skills'] = $this->profile->getSkills($id_profile);
+			$data['skills'] = $this->profile_mhs->getSkills($id_profile);
 		} elseif ($this->dataUser->name == 'madif') {
-			$data['jenis_madif'] = $this->profile->getJenisMadif($id_profile);
+			$data['jenis_madif'] = $this->profile_mhs->getJenisMadif($id_profile);
 		}
 
 		// dd($data);
@@ -745,15 +943,15 @@ class c_user extends BaseController
 
 	public function viewAllSkill()
 	{
-		$get_all_skill = $this->profile->getSkills();
+		$get_all_skill = $this->profile_mhs->getSkills();
 		$verifikasi_skill = [];
 		if (isset($get_all_skill)) {
 			foreach ($get_all_skill as $value) {
 				if (!isset($value['approval'])) {
 					$id_profile = $value['id_profile_pendamping'];
-					$get_profile = $this->profile->getProfile($id_profile);
+					$get_profile = $this->profile_mhs->getProfile($id_profile);
 					$get_biodata = $this->biodata->getBiodata($id_profile);
-					$get_nama_skill = $this->profile->getKategoriDifabel($value['ref_pendampingan']);
+					$get_nama_skill = $this->profile_mhs->getKategoriDifabel($value['ref_pendampingan']);
 					$value['nama_skill'] = $get_nama_skill['jenis'];
 					unset($get_profile['id_profile_mhs']);
 					unset($get_biodata['id_profile_mhs']);
@@ -769,6 +967,7 @@ class c_user extends BaseController
 			'title' => 'Verifikasi Skills Pendamping',
 			'v_skill' => $verifikasi_skill,
 			'user' => $this->dataUser,
+			'notifikasi'	  => $this->notifikasi,
 		];
 
 		// dd($data);
@@ -777,16 +976,16 @@ class c_user extends BaseController
 
 	public function viewAllJenisMadif()
 	{
-		$get_all_jenis_madif = $this->profile->getJenisMadif();
+		$get_all_jenis_madif = $this->profile_mhs->getJenisMadif();
 		$verifikasi_jenis_madif = [];
 		if (isset($get_all_jenis_madif)) {
 			foreach ($get_all_jenis_madif as $value) {
 				if (!isset($value['approval'])) {
 					$id_profile = $value['id_profile_madif'];
-					$get_profile = $this->profile->getProfile($id_profile);
+					$get_profile = $this->profile_mhs->getProfile($id_profile);
 					$get_biodata = $this->biodata->getBiodata($id_profile);
 
-					$get_nama_jenis = $this->profile->getKategoriDifabel($value['id_jenis_difabel']);
+					$get_nama_jenis = $this->profile_mhs->getKategoriDifabel($value['id_jenis_difabel']);
 					$value['nama_jenis_madif'] = $get_nama_jenis['jenis'];
 
 					unset($get_profile['id_profile_mhs']);
@@ -804,6 +1003,7 @@ class c_user extends BaseController
 			'title' => 'Verifikasi Jenis Mahasiswa Difabel',
 			'v_jenis_madif' => $verifikasi_jenis_madif,
 			'user' => $this->dataUser,
+			'notifikasi'	  => $this->notifikasi,
 		];
 
 		return view('admin/verifikasi/jenis_difabel/v_jenis_difabel_madif', $data);
@@ -824,6 +1024,25 @@ class c_user extends BaseController
 
 			return redirect()->back();
 		}
+
+		// Mengirimkan notifikasi verifikasi ke Admin
+		if ($data['role'] == 'madif') {
+			$get_id_profile_madif = $this->profile_mhs->getID($data['username']);
+			$get_jenis_madif = $this->profile_mhs->getJenisMadif($get_id_profile_madif);
+			$cek_jenis_madif = ($get_jenis_madif['id_jenis_difabel'] == $data['jenis_madif']);
+			if ($cek_jenis_madif) {
+				$get_biodata_madif = $this->biodata->getBiodata($get_id_profile_madif);
+				$get_nama_madif = $get_biodata_madif['nickname'];
+
+				$this->notif_admin->insert([
+					'id_jenis_notif' => $get_id_profile_madif,
+					'jenis_notif' => 'verif_jenis_madif',
+					'pesan' => 'Permohonan verifikasi jenis madif dari ' . $get_nama_madif,
+					'is_read' => 0,
+				]);
+			}
+		}
+		// END
 		session()->setFlashdata($word . '_berhasil_diedit', ucfirst($word) . ' berhasil diedit');
 
 		return redirect()->back();
@@ -840,12 +1059,25 @@ class c_user extends BaseController
 			'approval' => $status,
 		];
 
-		$this->profile->approval_skill($data);
+		$this->profile_mhs->approval_skill($data);
 		if ($status == 'terima') {
 			session()->setFlashdata('berhasil', 'Verifikasi skill pendamping berhasil disetujui');
 		} else {
 			session()->setFlashdata('tolak', 'Verifikasi skill pendamping berhasil ditolak');
 		}
+
+		// Mengirimkan notifikasi verifikasi ke Mahasiswa                
+		$get_kategori_difabel = $this->profile_mhs->getKategoriDifabel($get_id_skill);
+		$ref_pendampingan = $get_kategori_difabel['jenis'];
+		$verif = ($status == 'terima') ? 'disetujui' : 'ditolak';
+
+		$this->notif_pendamping->insert([
+			'id_profile_pendamping' => $get_id_profile,
+			'id_jenis_notif' => $get_id_skill,
+			'jenis_notif' => 'notif_skill',
+			'pesan' => 'Referensi pendampingan ' . $ref_pendampingan . ' Anda telah ' . $verif . ' oleh Admin',
+			'is_read' => 0,
+		]);
 
 		return redirect()->back();
 	}
@@ -858,13 +1090,27 @@ class c_user extends BaseController
 			'id_profile_madif' => $get_id_profile,
 			'approval' => $status,
 		];
-		$this->profile->approval_jenis_madif($data);
+		$this->profile_mhs->approval_jenis_madif($data);
 
 		if ($status == 'terima') {
 			session()->setFlashdata('berhasil', 'Verifikasi jenis madif berhasil disetujui');
 		} else {
 			session()->setFlashdata('tolak', 'Verifikasi jenis madif berhasil ditolak');
 		}
+
+		// Mengirimkan notifikasi verifikasi ke Mahasiswa                
+		$get_jenis_madif = $this->profile_mhs->getJenisMadif($get_id_profile);
+		$id_jenis_difabel = $get_jenis_madif['id_jenis_difabel'];
+		$verif = ($status == 'terima') ? 'disetujui' : 'ditolak';
+
+		$this->notif_madif->insert([
+			'id_profile_madif' => $get_id_profile,
+			'id_jenis_notif' => $id_jenis_difabel,
+			'jenis_notif' => 'notif_jenis_difabel',
+			'pesan' => 'Jenis difabel Anda telah ' . $verif . ' oleh Admin',
+			'is_read' => 0,
+		]);
+		// END
 
 		return redirect()->back();
 	}
@@ -874,7 +1120,7 @@ class c_user extends BaseController
 		$get_username = $this->request->getUri()->getSegment(3);
 		$get_id_user = $this->user_m->select('id')->getWhere(['username' => $get_username])->getRowArray();
 		$this->user_m->update($get_id_user, ['status' => true]);
-		$get_id_profile = $this->profile->getID($get_username);
+		$get_id_profile = $this->profile_mhs->getID($get_username);
 		$get_biodata = $this->biodata->getBiodata($get_id_profile);
 
 		session()->setFlashdata('berhasil_activate', 'User ' . $get_biodata['fullname'] . ' berhasil diaktivasi');

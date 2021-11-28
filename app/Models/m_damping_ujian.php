@@ -29,6 +29,7 @@ class m_damping_ujian extends Model
             $detail_bio_pendamping = $biodata_mhs->getBiodata($key['id_profile_pendamping']);
             $nama_skill = $profile_pendamping->getKategoriDifabel($key['ref_pendampingan']);
             $prioritas_skill = $key['prioritas'];
+            $insert['urutan'] = (isset($key['id_profile_pendamping'])) ? 1 : 2;
             $insert['id_profile_madif'] = $detail_bio_madif['id_profile_mhs'];
             $insert['nama_madif'] = $detail_bio_madif['nickname'];
 
@@ -49,6 +50,11 @@ class m_damping_ujian extends Model
             }
             $hasil_generate[] = $insert;
         }
+
+        $column_1 = array_column($hasil_generate, 'urutan');
+        $column_2 = array_column($hasil_generate, 'prioritas');
+        array_multisort($column_1, SORT_ASC, $column_2, SORT_ASC, $hasil_generate);
+
         return $hasil_generate;
     }
 
@@ -114,7 +120,7 @@ class m_damping_ujian extends Model
 
         // Jika jadwal baru digenerate
         if (empty($data['status'])) {
-            dd($insert);
+            return $this->db->table('presensi')->insert(['id_damping_ujian'=>$data['id_damping_ujian']]);
         }
 
         // Waktu Melakukan Presensi
@@ -294,6 +300,7 @@ class m_damping_ujian extends Model
     }
 
     // METHOD DIPAKE SAAT ADA PERIZINAN TANPA PENDAMPING
+    // Jadwal yang diplottingkan adalah jadwal yang sudah di approve
     public function plottingJadwal1($data)
     {
         // 1 Jadwal Madif yang Ingin Diplottingkan
@@ -316,38 +323,41 @@ class m_damping_ujian extends Model
 
             // Mencari jadwal kosong pada pendamping dengan jumlah mendampingi sedikit
             foreach ($urutan_jadwal_pendamping as $key1) {
-                // Peraturan tanggal sama, di waktu ujian berbeda
-                if ($jadwal_madif['tanggal_ujian'] == $key1['tanggal_ujian']) {
-                    // Aturan waktu beririsan                        
-                    $rules = [
-                        // start_waktu_pendamping <= start_madif, end_madif <= end_pendamping, waktu ujian madif beririsan di dalam waktu ujian pendamping
-                        'rule1' => $jadwal_madif['waktu_mulai_ujian'] >= $key1['waktu_mulai_ujian'] && $jadwal_madif['waktu_selesai_ujian'] <= $key1['waktu_selesai_ujian'],
-                        // start_pendamping >= start_madif, end_madif >= end_pendamping, waktu ujian pendamping beririsan di dalam waktu ujian madif
-                        'rule2' => $jadwal_madif['waktu_mulai_ujian'] <= $key1['waktu_mulai_ujian'] && $jadwal_madif['waktu_selesai_ujian'] >= $key1['waktu_selesai_ujian'],
-                        // start_pendamping <= end_madif <= end_pendamping, waktu selesai ujian madif beririsan diantara waktu ujian pendamping
-                        'rule3' => $jadwal_madif['waktu_selesai_ujian'] >= $key1['waktu_mulai_ujian'] && $jadwal_madif['waktu_selesai_ujian'] <= $key1['waktu_selesai_ujian'],
-                        // start_pendamping <= start_madif <= end_pendamping, waktu mulai ujian madif beririsan diantara waktu ujian pendamping
-                        'rule4' => $jadwal_madif['waktu_mulai_ujian'] >= $key1['waktu_mulai_ujian'] && $jadwal_madif['waktu_mulai_ujian'] <= $key1['waktu_selesai_ujian'],
-                    ];
+                // Mencari jadwal yang sudah diapprove
+                if ($key1['approval'] == 1) {
+                    // Peraturan tanggal sama, di waktu ujian berbeda
+                    if ($jadwal_madif['tanggal_ujian'] == $key1['tanggal_ujian']) {
+                        // Aturan waktu beririsan                        
+                        $rules = [
+                            // start_waktu_pendamping <= start_madif, end_madif <= end_pendamping, waktu ujian madif beririsan di dalam waktu ujian pendamping
+                            'rule1' => $jadwal_madif['waktu_mulai_ujian'] >= $key1['waktu_mulai_ujian'] && $jadwal_madif['waktu_selesai_ujian'] <= $key1['waktu_selesai_ujian'],
+                            // start_pendamping >= start_madif, end_madif >= end_pendamping, waktu ujian pendamping beririsan di dalam waktu ujian madif
+                            'rule2' => $jadwal_madif['waktu_mulai_ujian'] <= $key1['waktu_mulai_ujian'] && $jadwal_madif['waktu_selesai_ujian'] >= $key1['waktu_selesai_ujian'],
+                            // start_pendamping <= end_madif <= end_pendamping, waktu selesai ujian madif beririsan diantara waktu ujian pendamping
+                            'rule3' => $jadwal_madif['waktu_selesai_ujian'] >= $key1['waktu_mulai_ujian'] && $jadwal_madif['waktu_selesai_ujian'] <= $key1['waktu_selesai_ujian'],
+                            // start_pendamping <= start_madif <= end_pendamping, waktu mulai ujian madif beririsan diantara waktu ujian pendamping
+                            'rule4' => $jadwal_madif['waktu_mulai_ujian'] >= $key1['waktu_mulai_ujian'] && $jadwal_madif['waktu_mulai_ujian'] <= $key1['waktu_selesai_ujian'],
+                        ];
 
-                    // Jika beririsan maka pendamping sudah pasti tidak bisa mendampingi
-                    if ($rules['rule1'] || $rules['rule2'] || $rules['rule3'] || $rules['rule4']) {
-                        // mencari pendamping lain
-                        $cek_dapat_jadwal = false;
-                        break;
+                        // Jika beririsan maka pendamping sudah pasti tidak bisa mendampingi
+                        if ($rules['rule1'] || $rules['rule2'] || $rules['rule3'] || $rules['rule4']) {
+                            // mencari pendamping lain
+                            $cek_dapat_jadwal = false;
+                            break;
+                        }
+
+                        // Jika tidak beririsan maka masukan pendamping
+                        else {
+                            $cek_dapat_jadwal = true;
+                        }
                     }
 
-                    // Jika tidak beririsan maka masukan pendamping
-                    else {
-                        $cek_dapat_jadwal = true;
-                    }
-                }
-
-                // Peraturan tanggal ujian berbeda                    
-                elseif ($jadwal_madif['tanggal_ujian'] != $key1['tanggal_ujian']) {
-                    // Jika sampai eachloop akhir tidak ada jadwal tanggal ujian yang sama, maka masukkan dibawah ini                        
-                    if (end($urutan_jadwal_pendamping) == $key1) {
-                        $cek_dapat_jadwal = true;
+                    // Peraturan tanggal ujian berbeda                    
+                    elseif ($jadwal_madif['tanggal_ujian'] != $key1['tanggal_ujian']) {
+                        // Jika sampai eachloop akhir tidak ada jadwal tanggal ujian yang sama, maka masukkan dibawah ini                        
+                        if (end($urutan_jadwal_pendamping) == $key1) {
+                            $cek_dapat_jadwal = true;
+                        }
                     }
                 }
             }
@@ -366,6 +376,7 @@ class m_damping_ujian extends Model
         return $temp_jadwal_sesuai;
     }
 
+    // Skill yang diplottingkan adalah skill yang sudah di approve
     public function plottingSkill1($data)
     {
         // Variabel data adalah variabel yang menyimpan data pendamping yang telah dihimpun dan jenis difabel        
@@ -375,11 +386,11 @@ class m_damping_ujian extends Model
         $result = [];
         $profile_mhs = model(m_profile_mhs::class);
 
-        $max_jumlah_skill = 0;
+        $max_prioritas_skill = 0;
         foreach ($all_id_pendamping as $key) {
             $skills_pendamping = $profile_mhs->getSkills($key);
-            if ($max_jumlah_skill < count($skills_pendamping)) {
-                $max_jumlah_skill = count($skills_pendamping);
+            if ($max_prioritas_skill < count($skills_pendamping)) {
+                $max_prioritas_skill = count($skills_pendamping);
             }
         }
 
@@ -392,10 +403,10 @@ class m_damping_ujian extends Model
                 'prioritas' => null,
                 'skill_cocok' => false,
             ];
-            for ($i = 0; $i < $max_jumlah_skill; $i++) {
+            for ($i = 0; $i < $max_prioritas_skill; $i++) {
                 $skills_pendamping = $profile_mhs->getSkills($key1);
                 if (isset($skills_pendamping[$i])) {
-                    if ($skills_pendamping[$i]['ref_pendampingan'] == $jenis_difabel['id']) {
+                    if ($skills_pendamping[$i]['approval'] == 1 && $skills_pendamping[$i]['ref_pendampingan'] == $jenis_difabel['id']) {
                         $insert['ref_pendampingan'] = $skills_pendamping[$i]['ref_pendampingan'];
                         $insert['prioritas'] = $skills_pendamping[$i]['prioritas'];
                         $insert['skill_cocok'] = true;
@@ -424,6 +435,7 @@ class m_damping_ujian extends Model
          */
         $find_match_jadwal = $this->plottingJadwal1($data);
         $find_match_skill = $this->plottingSkill1($data);
+
         $result = [];
         foreach ($find_match_skill as $key1) {
             foreach ($find_match_jadwal as $key2) {

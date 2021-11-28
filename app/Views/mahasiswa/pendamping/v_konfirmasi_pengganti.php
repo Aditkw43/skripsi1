@@ -51,9 +51,14 @@
                                                 <?php $i = 1 ?>
                                                 <?php foreach ($get_konfirmasi as $approve1) : ?>
                                                     <tr class="align-middle">
-
                                                         <!-- Id izin -->
                                                         <input type="hidden" name="id_izin" value="<?= $approve1['id_izin']; ?>">
+
+                                                        <!-- Id damping -->
+                                                        <input type="hidden" name="id_damping" value="<?= $approve1['id_damping']; ?>">
+
+                                                        <!-- Id pendamping baru -->
+                                                        <input type="hidden" name="pendamping_pengganti" value="<?= $approve1['pendamping_baru']['id_profile_mhs']; ?>">
 
                                                         <!-- Nomor -->
                                                         <th scope="row"><?= $i; ?></th>
@@ -72,8 +77,8 @@
 
                                                         <!-- Status -->
                                                         <td>
-                                                            <a href="<?= base_url('c_perizinan/approval_izin/pengganti'); ?>/<?= $approve1['id_izin'], '/terima'; ?>" class="btn btn-success btn-sm my-1">Terima</a>
-                                                            <a href="<?= base_url('c_perizinan/approval_izin/pengganti'); ?>/<?= $approve1['id_izin'], '/tolak'; ?>" class="btn btn-danger btn-sm">Tolak</a>
+                                                            <a href="<?= base_url('c_perizinan/approval_izin/pengganti'); ?>/<?= $approve1['id_izin'], '/terima/' . $approve1['id_damping'] . '/' . $approve1['pendamping_baru']['id_profile_mhs']; ?>" class="btn btn-success btn-sm my-1">Terima</a>
+                                                            <a href="<?= base_url('c_perizinan/approval_izin/pengganti'); ?>/<?= $approve1['id_izin'], '/tolak/' . $approve1['id_damping'] . '/' . $approve1['pendamping_baru']['id_profile_mhs']; ?>" class="btn btn-danger btn-sm">Tolak</a>
                                                         </td>
 
                                                         <!-- Dokumen -->

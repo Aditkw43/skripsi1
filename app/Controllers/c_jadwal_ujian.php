@@ -4,11 +4,12 @@ namespace App\Controllers;
 
 use App\Models\m_biodata;
 use App\Models\m_jadwal_ujian;
+use App\Models\m_notif_admin;
 use App\Models\m_profile_mhs;
 
 class c_jadwal_ujian extends BaseController
 {
-    protected $db, $builder, $builder2, $dataUser, $profile, $jadwal_ujian, $biodata;
+    protected $db, $builder, $builder2, $dataUser, $profile, $jadwal_ujian, $biodata, $notif_admin, $notif_madif, $notif_pendamping;
     public function __construct()
     {
         $this->db = \Config\Database::connect();
@@ -31,6 +32,9 @@ class c_jadwal_ujian extends BaseController
         $this->profile = model(m_profile_mhs::class);
         $this->jadwal_ujian = model(m_jadwal_ujian::class);
         $this->biodata = model(m_biodata::class);
+        $this->notif_admin = model(m_notif_admin::class);
+        $this->notif_madif = model(m_notif_madif::class);
+        $this->notif_pendamping = model(m_notif_pendamping::class);
     }
 
     // Melihat semua jadwal mahasiswa
@@ -101,6 +105,7 @@ class c_jadwal_ujian extends BaseController
             'jenis_mhs' => $this->request->getUri()->getSegment(2),
             'all_mhs' => $all_mhs,
             'user' => $this->dataUser,
+            'notifikasi'      => $this->notifikasi,
         ];
         // dd($data);
 
@@ -120,6 +125,7 @@ class c_jadwal_ujian extends BaseController
             'title' => 'Daftar Jadwal Ujian UTS ',
             'jadwal' => $this->jadwal_ujian->getJadwalUjianUTS($id_profile_mhs),
             'jenis_ujian' => 'UTS',
+            'notifikasi'      => $this->notifikasi,
         ];
 
         if ($this->dataUser->name == 'admin') {
@@ -147,6 +153,7 @@ class c_jadwal_ujian extends BaseController
             'title' => 'Daftar Jadwal Ujian UAS ',
             'jadwal' => $this->jadwal_ujian->getJadwalUjianUAS($id_profile_mhs),
             'jenis_ujian' => 'UAS',
+            'notifikasi'      => $this->notifikasi,
         ];
 
         if ($this->dataUser->name == 'admin') {
@@ -206,6 +213,20 @@ class c_jadwal_ujian extends BaseController
             'keterangan' => $this->request->getVar('keterangan'),
             'jenis_ujian' => $this->request->getVar('jenis_ujian'),
         ]);
+
+        // Mengirimkan notifikasi verifikasi ke Admin
+        $jenis_ujian = $this->request->getVar('jenis_ujian');
+        $get_biodata = $this->biodata->getBiodata($data['id_profile_mhs']);
+        $get_nama = $get_biodata['nickname'];
+
+        $get_id_jadwal_ujian = $this->db->table('jadwal_ujian')->getwhere(['id_profile_mhs' => $data['id_profile_mhs']])->getLastRow();
+        $this->notif_admin->insert([
+            'id_jenis_notif' => $get_id_jadwal_ujian->id_jadwal_ujian,
+            'jenis_notif' => 'verif_jadwal',
+            'pesan' => 'Permohonan verifikasi untuk jadwal ujian ' . $jenis_ujian . ' dari ' . $get_nama,
+            'is_read' => 0,
+        ]);
+        // END        
 
         if (!empty($this->request->getVar('admin'))) {
             $this->jadwal_ujian->update($data['id_profile_mhs'], ['approval' => true]);
@@ -317,6 +338,24 @@ class c_jadwal_ujian extends BaseController
         } elseif ($status == 'tolak') {
             $this->jadwal_ujian->update($get_id_jadwal, ['approval' => 0]);
         }
+        // Mengirimkan notifikasi verifikasi ke Mahasiswa                
+        $get_jadwal = $this->jadwal_ujian->getDetailUjian($get_id_jadwal);
+        $id_profile_mhs = $get_jadwal['id_profile_mhs'];
+        $jenis_ujian = $get_jadwal['jenis_ujian'];
+        $mata_kuliah = $get_jadwal['mata_kuliah'];
+        $verif = ($status == 'terima') ? 'disetujui' : 'ditolak';
+
+        $get_profile_mhs = $this->profile->getProfile($get_jadwal['id_profile_mhs']);
+        $notif_mhs = ($get_profile_mhs['madif'] == true) ? $this->notif_madif : $this->notif_pendamping;
+        $role = ($get_profile_mhs['madif'] == 1) ? 'madif' : 'pendamping';
+        $notif_mhs->insert([
+            'id_profile_' . $role => $id_profile_mhs,
+            'id_jenis_notif' => $get_id_jadwal,
+            'jenis_notif' => 'notif_jadwal',
+            'pesan' => 'Jadwal ujian ' . $jenis_ujian . ' ' . $mata_kuliah . ' telah ' . $verif . ' oleh Admin',
+            'is_read' => 0,
+        ]);
+        // END
         return redirect()->back();
     }
 }

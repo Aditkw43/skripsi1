@@ -6,13 +6,16 @@
         <div class="col-lg-12 col-md-12 col-12">
             <div class="row mb-6">
                 <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+
                     <div class="mb-2 mt-2" style="display: flex; justify-content: space-between; align-items:center">
                         <h2><?= $title; ?></h2>
                         <div class="my-2" style="display: flex; align-items:right">
-                            <!-- Button trigger modal -->
-                            <button type="button" class="btn btn-warning btn-sm mt-3 mx-1 editJadwal" data-bs-toggle="modal" data-bs-target="#cekTidakDamping" ?>
-                                Cek Tidak Didampingi
-                            </button>
+                            <?php if (!count($v_tidak_didampingi) == 0) : ?>
+                                <!-- Button trigger modal -->
+                                <button type="button" class="btn btn-warning btn-sm mt-3 mx-1 editJadwal" data-bs-toggle="modal" data-bs-target="#cekTidakDamping" ?>
+                                    Cek Tidak Didampingi
+                                </button>
+                            <?php endif; ?>
 
                             <!-- Button trigger modal -->
                             <a class="btn btn-danger btn-sm mt-3 mx-1" href="<?= base_url('c_damping_ujian'); ?>">Hapus Generate</a>
@@ -42,7 +45,7 @@
                             </thead>
                             <tbody class="text-center table-light">
                                 <tr>
-                                    <td><?= count($value_generate)-count($v_tidak_didampingi); ?></td>
+                                    <td><?= count($value_generate) - count($v_tidak_didampingi); ?></td>
                                     <td><?= count($v_tidak_didampingi); ?></td>
                                 </tr>
                             </tbody>
@@ -64,7 +67,6 @@
                                 </tr>
                             </thead>
                             <tbody class="table-light">
-
                                 <?php $i = 1 ?>
                                 <?php foreach ($madif as $m) : ?>
                                     <tr class="align-middle">
@@ -101,7 +103,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p style="color: red;">catatan: tanda '-' menunjukkan tidak ada referensi pendampingan yang sesuai</p>
+                    <p style="color: red;">catatan: tanda (-) menunjukkan data tidak tersedia</p>
                     <form action="/c_jadwal_ujian/delJadwal" method="post">
                         <!-- Basic table -->
                         <div class="table-responsive">
@@ -115,21 +117,36 @@
                                         <th scope="col">Prioritas</th>
                                     </tr>
                                 </thead>
-                                <?php $i = 1; ?>
-                                <?php foreach ($hasil_generate as $hg) : ?>
-                                    <?php if ($hg['id_profile_madif'] == $md['id_profile_madif'] && $hg['nama_pendamping'] != null) : ?>
-                                        <tbody class="table-light">
-                                            <tr class="align-middle">
-                                                <th scope="row"><?= $i; ?></th>
-                                                <td><?= $hg['mata_kuliah']; ?></td>
-                                                <td><?= $hg['nama_pendamping']; ?></td>
-                                                <td><?= $hg['ref_pendampingan']; ?></td>
-                                                <td><?= $hg['prioritas']; ?></td>
-                                            </tr>
-                                        </tbody>
-                                        <?php $i++; ?>
+                                <tbody class="table-light">
+                                    <?php $i = 1; ?>
+                                    <?php if (!(count($v_tidak_didampingi) == count($hasil_generate))) : ?>
+                                        <?php foreach ($hasil_generate as $hg) : ?>
+                                            <?php if ($hg['id_profile_madif'] == $md['id_profile_madif'] && $hg['nama_pendamping'] != null) : ?>
+                                                <tr class="align-middle">
+                                                    <th scope="row"><?= $i; ?></th>
+                                                    <td><?= $hg['mata_kuliah']; ?></td>
+                                                    <td><?= $hg['nama_pendamping']; ?></td>
+                                                    <td><?= $hg['ref_pendampingan']; ?></td>
+                                                    <td><?= $hg['prioritas']; ?></td>
+                                                </tr>
+                                            <?php elseif ($hg['id_profile_madif'] == $md['id_profile_madif']) : ?>
+                                                <tr class="align-middle">
+                                                    <th scope="row"><?= $i; ?></th>
+                                                    <td><?= $hg['mata_kuliah']; ?></td>
+                                                    <td>-</td>
+                                                    <td>-</td>
+                                                    <td>-</td>
+                                                </tr>
+                                            <?php else : continue; ?>
+                                            <?php endif; ?>
+                                            <?php $i++; ?>
+                                        <?php endforeach; ?>
+                                    <?php else : ?>
+                                        <tr>
+                                            <td colspan="6" class="text-center text-black-50">Data tidak tersedia</td>
+                                        </tr>
                                     <?php endif; ?>
-                                <?php endforeach; ?>
+                                </tbody>
                             </table>
                         </div>
                     </form>
@@ -182,8 +199,8 @@
                                     <th scope="col">Tanggal Ujian</th>
                                     <th scope="col">Mahasiswa Difabel</th>
                                     <th scope="col">Pendamping</th>
-                                    <th scope="col">Jumlah Didampingi</th>
-                                    <th scope="col">Jumlah Tidak Didampingi</th>
+                                    <th scope="col">Mata Kuliah</th>
+                                    <th scope="col">Waktu Ujian</th>
                                 </tr>
                             </thead>
                             <tbody class="text-center table-light">

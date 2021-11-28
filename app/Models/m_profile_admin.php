@@ -13,20 +13,20 @@ class m_profile_admin extends Model
 {
     protected $table = 'profile_admin';
     protected $primaryKey = 'id_profile_admin';
-    protected $allowedFields = ['username', 'jabatan'];    
+    protected $allowedFields = ['username', 'jabatan'];
 
     public function getID($nim = 0)
     {
         $id = $this;
-        $id->select('id_profile_mhs');
-        $id->where('nim', $nim);
+        $id->select('id_profile_admin');
+        $id->where('username', $nim);
         $id = $id->first();
-        return $id['id_profile_mhs'];
+        return $id['id_profile_admin'];
     }
 
-    public function getProfile($id_profile_mhs = 0)
+    public function getProfile($id_profile_admin = 0)
     {
-        return $this->where('id_profile_mhs', $id_profile_mhs)->first();
+        return $this->where('id_profile_admin', $id_profile_admin)->first();
     }
 
     public function getAllProfile($jenis_mhs = null)

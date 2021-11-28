@@ -94,6 +94,13 @@ $routes->get('/viewAllJenisMadif', 'c_user::viewAllJenisMadif', ['filter' => 'ro
 $routes->delete('/madif/(:alphanum)', 'madif::delSkill/$1');
 $routes->get('/editJenisMadif/(:alphanum)', 'jenisMadif::editJenisMadif/$1');
 
+// Notifikasi
+$routes->get('/notifAdmin', 'c_notif::notifAdmin', ['filter' => 'role:admin']);
+$routes->get('/notifMadif', 'c_notif::notifMadif', ['filter' => 'role:madif']);
+$routes->get('/notifPendamping', 'c_notif::notifPendamping', ['filter' => 'role:pendamping']);
+$routes->get('/is_read/(:any)', 'c_notif::isRead/$1');
+$routes->get('c_notif/delNotif/(:any)', 'c_notif::delNotif/$1');
+
 /*
  * --------------------------------------------------------------------
  * Additional Routing

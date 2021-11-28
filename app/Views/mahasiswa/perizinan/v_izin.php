@@ -97,17 +97,9 @@
                                                     </tr>
                                                 <?php endforeach; ?>
                                             <?php else : ?>
-                                                <?php for ($i = 0; $i < 10; $i++) : ?>
-                                                    <tr>
-                                                        <th></th>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                    </tr>
-                                                <?php endfor; ?>
+                                                <tr>
+                                                    <td colspan="7" class="text-center text-black-50">Data tidak tersedia</td>
+                                                </tr>
                                             <?php endif; ?>
 
                                         </tbody>
@@ -165,17 +157,9 @@
                                                     </tr>
                                                 <?php endforeach; ?>
                                             <?php else : ?>
-                                                <?php for ($i = 0; $i < 10; $i++) : ?>
-                                                    <tr>
-                                                        <th></th>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td></td>
-                                                    </tr>
-                                                <?php endfor; ?>
+                                                <tr>
+                                                    <td colspan="7" class="text-center text-black-50">Data tidak tersedia</td>
+                                                </tr>
                                             <?php endif; ?>
                                         </tbody>
                                     </table>
@@ -193,7 +177,7 @@
 <?php if (!empty($get_damping)) : ?>
     <?php foreach ($get_damping as $gd) : ?>
 
-        <!-- Modal Edit Jadwal -->
+        <!-- Modal Perizinan -->
         <div class="modal fade" id="izinTidakDamping<?= $gd['id_damping']; ?>" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">

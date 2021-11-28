@@ -125,7 +125,7 @@
                                                 </tr>
                                                 <?php $i++; ?>
                                             <?php endforeach; ?>
-                                        <?php else: ?>
+                                        <?php else : ?>
                                             <tr>
                                                 <td></td>
                                                 <td></td>
@@ -407,11 +407,11 @@
 
                         <!-- Rating Madif -->
                         <label for="disabledRange" class="form-label">Rating Mahasiswa Difabel</label>
-                        <input type="range" class="form-range" id="disabledRange" min="0" max="5" value="<?= $modalhl['laporan']['madif_rating']; ?>" disabled>
+                        <input type="range" class="form-range" id="disabledRange" min="1" max="5" value="<?= $modalhl['laporan']['madif_rating']; ?>" disabled>
 
                         <!-- Rating Pendamping-->
                         <label for="disabledRange" class="form-label">Rating Pendamping</label>
-                        <input type="range" class="form-range" id="disabledRange" min="0" max="5" value="<?= $modalhl['laporan']['pendamping_rating']; ?>" disabled>
+                        <input type="range" class="form-range" id="disabledRange" min="1" max="5" value="<?= $modalhl['laporan']['pendamping_rating']; ?>" disabled>
 
                         <!-- Evaluasi Madif -->
                         <div class="form-floating mb-2">

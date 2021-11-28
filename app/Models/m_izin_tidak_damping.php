@@ -23,8 +23,8 @@ class m_izin_tidak_damping extends Model
          * 3)Seleksi kecocokan jadwal pendamping baru dengan madif
          * 4)Seleksi kecocokan skill pendamping baru dengan jenis difabel madif
          */
-        $builder = $this->db->table('jadwal_ujian')->select('jadwal_ujian.*')->join('profile_mhs', 'profile_mhs.id_profile_mhs = jadwal_ujian.id_profile_mhs')->where('profile_mhs.pendamping', 1)->where('jadwal_ujian.id_profile_mhs !=', $data['id_profile_pendamping'])->where('jadwal_ujian.approval', true)->orderBy('jadwal_ujian.id_profile_mhs ASC, jadwal_ujian.tanggal_ujian ASC, jadwal_ujian.waktu_mulai_ujian ASC')->get()->getResultArray();
         $m_bio = model(m_biodata::class);
+        $builder = $this->db->table('jadwal_ujian')->select('jadwal_ujian.*')->join('profile_mhs', 'profile_mhs.id_profile_mhs = jadwal_ujian.id_profile_mhs')->where('profile_mhs.pendamping', 1)->where('jadwal_ujian.id_profile_mhs !=', $data['id_profile_pendamping'])->where('jadwal_ujian.approval', true)->orderBy('jadwal_ujian.id_profile_mhs ASC, jadwal_ujian.tanggal_ujian ASC, jadwal_ujian.waktu_mulai_ujian ASC')->get()->getResultArray();
 
         // Menghimpun seluruh pendamping
         $jumlah_pendamping = [];
@@ -63,6 +63,7 @@ class m_izin_tidak_damping extends Model
                 $jumlah_pendamping[$key1['id_profile_mhs']]['skill'] = $skill_pendamping;
             }
         }
+        
         // Menyocokan Jadwal Pendamping
         $temp_pendamping = [];
         foreach ($jumlah_pendamping as $id_profile_pendamping => $value) {
@@ -130,10 +131,11 @@ class m_izin_tidak_damping extends Model
                         $temp_pendamping[$get_biodata['id_profile_mhs']]['cek_skill'] = true;
                     }
                 }
-            }
+            }            
             array_sort_by_multiple_keys($rekomen_pendamping, [
                 'prioritas' => SORT_ASC,
             ]);
+            
             foreach ($rekomen_pendamping as $key4 => $value1) {
                 $rekomen_pendamping[$value1['profile']['id_profile_mhs']] = $value1;
                 unset($rekomen_pendamping[$key4]);
@@ -148,7 +150,6 @@ class m_izin_tidak_damping extends Model
                 }
             }
         }
-
         return $rekomen_pendamping;
     }
 

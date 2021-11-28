@@ -3,11 +3,12 @@
 namespace App\Controllers;
 
 use App\Models\m_biodata;
+use App\Models\m_notif_admin;
 use App\Models\m_profile_mhs;
 
 class c_profile_pendamping extends BaseController
 {
-    protected $db, $builder, $builder2, $dataUser, $profile, $biodata;
+    protected $db, $builder, $builder2, $dataUser, $profile, $biodata, $notif_admin;
 
     public function __construct()
     {
@@ -29,6 +30,7 @@ class c_profile_pendamping extends BaseController
 
         $this->profile = model(m_profile_mhs::class);
         $this->biodata = model(m_biodata::class);
+        $this->notif_admin = model(m_notif_admin::class);
     }
 
     // Melihat dashboard pendamping
@@ -36,7 +38,8 @@ class c_profile_pendamping extends BaseController
     {
         $data = [
             'title' => 'Daftar Jadwal Ujian',
-            'jadwal' => $this->jadwalModel->getJadwalUjian()
+            'jadwal' => $this->jadwalModel->getJadwalUjian(),
+            'notifikasi'      => $this->notifikasi,
         ];
 
         // $admin = $this->builder2->get();
@@ -71,6 +74,7 @@ class c_profile_pendamping extends BaseController
             'biodata' => $this->biodata->getBiodata($id_profile_pendamping),
             'kategori_difabel' => $this->profile->getKategoriDifabel(),
             'skills_pendamping' => $this->profile->getSkills($id_profile_pendamping),
+            'notifikasi'      => $this->notifikasi,
         ];
 
         return view('mahasiswa/pendamping/v_p_skills', $data);
@@ -86,7 +90,7 @@ class c_profile_pendamping extends BaseController
             'id_profile_pendamping' => $this->request->getVar('id_profile_pendamping'),
             'ref_pendampingan' => $ref_pendampingan,
             'prioritas' => $prioritas,
-            'approval' => ($user_management) ? true : false,
+            'approval' => ($user_management) ? true : null,
         ];
 
         if ($ref_pendampingan == null || $prioritas == 0) {
@@ -101,6 +105,19 @@ class c_profile_pendamping extends BaseController
             return redirect()->back();
         }
         $nama_skill = $this->profile->getKategoriDifabel($data['ref_pendampingan']);
+        // Mengirimkan notifikasi verifikasi ke Admin
+        if (empty($user_management)) {
+            $get_biodata_pendamping = $this->biodata->getBiodata($data['id_profile_pendamping']);
+            $get_nama_pendamping = $get_biodata_pendamping['nickname'];
+
+            $this->notif_admin->insert([
+                'id_jenis_notif' => $data['id_profile_pendamping'],
+                'jenis_notif' => 'verif_skills',
+                'pesan' => 'Permohonan verifikasi skill pendamping dari ' . $get_nama_pendamping,
+                'is_read' => 0,
+            ]);
+        }
+        // END
 
         session()->setFlashdata('berhasil_ditambahkan', 'Referensi pendampingan ' . $nama_skill['jenis'] . ' berhasil ditambahkan dengan prioritas ke-' . $data['prioritas']);
         return redirect()->back();
